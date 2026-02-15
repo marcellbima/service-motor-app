@@ -3,8 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Service Motor App - WhatsApp Notifications</title>
-    <meta name="description" content="Web app untuk tracking dan monitoring jadwal service motor dengan notifikasi WhatsApp">
+    <title>Service Motor App - Admin Protected</title>
     <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
     <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
     <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
@@ -46,16 +45,19 @@
         const { useState, useEffect } = React;
 
         // KONFIGURASI FIREBASE
-const firebaseConfig = {
-  apiKey: "AIzaSyBiS743krcarz8ojSb7i54Yrni6N4E5gE8",
-  authDomain: "service-motor-app.firebaseapp.com",
-  databaseURL: "https://service-motor-app-default-rtdb.asia-southeast1.firebasedatabase.app",
-  projectId: "service-motor-app",
-  storageBucket: "service-motor-app.firebasestorage.app",
-  messagingSenderId: "303245984126",
-  appId: "1:303245984126:web:2ef9e08baf6ebed15c332f",
-  measurementId: "G-LJCGMSNDJG"
-};
+        const firebaseConfig = {
+            apiKey: "AIzaSyBiS743krcarz8ojSb7i54Yrni6N4E5gE8",
+            authDomain: "service-motor-app.firebaseapp.com",
+            databaseURL: "https://service-motor-app-default-rtdb.asia-southeast1.firebasedatabase.app",
+            projectId: "service-motor-app",
+            storageBucket: "service-motor-app.firebasestorage.app",
+            messagingSenderId: "303245984126",
+            appId: "1:303245984126:web:2ef9e08baf6ebed15c332f",
+            measurementId: "G-LJCGMSNDJG"
+        };
+
+        // ADMIN PASSWORD - Ganti dengan password yang Anda inginkan
+        const ADMIN_PASSWORD = "admin123";
 
         const SERVICE_TYPES = [
             { name: 'Ganti Oli Mesin', intervalKm: 2000, icon: '🛢️' },
@@ -84,6 +86,13 @@ const firebaseConfig = {
             const [showWhatsAppModal, setShowWhatsAppModal] = useState(false);
             const [selectedService, setSelectedService] = useState(null);
             const [phoneNumber, setPhoneNumber] = useState('');
+            
+            // Admin states
+            const [isAdmin, setIsAdmin] = useState(false);
+            const [showAdminLogin, setShowAdminLogin] = useState(false);
+            const [adminPassword, setAdminPassword] = useState('');
+            const [adminError, setAdminError] = useState('');
+            
             const [formData, setFormData] = useState({
                 jenisService: '',
                 jenisMotor: '',
@@ -98,7 +107,7 @@ const firebaseConfig = {
             useEffect(() => {
                 try {
                     if (firebaseConfig.apiKey === "YOUR_API_KEY") {
-                        setError('⚠️ Konfigurasi Firebase belum diatur. Silakan lihat panduan setup di bawah.');
+                        setError('⚠️ Konfigurasi Firebase belum diatur.');
                         setLoading(false);
                         return;
                     }
@@ -109,6 +118,12 @@ const firebaseConfig = {
                     database = firebase.database();
                     setFirebaseInitialized(true);
                     loadServices();
+                    
+                    // Check if admin is already logged in (from sessionStorage)
+                    const adminStatus = sessionStorage.getItem('isAdmin');
+                    if (adminStatus === 'true') {
+                        setIsAdmin(true);
+                    }
                 } catch (err) {
                     setError('❌ Error menginisialisasi Firebase: ' + err.message);
                     setLoading(false);
@@ -133,6 +148,46 @@ const firebaseConfig = {
                 });
 
                 return () => servicesRef.off();
+            };
+
+            const handleAdminLogin = () => {
+                if (adminPassword === ADMIN_PASSWORD) {
+                    setIsAdmin(true);
+                    sessionStorage.setItem('isAdmin', 'true');
+                    setShowAdminLogin(false);
+                    setAdminPassword('');
+                    setAdminError('');
+                } else {
+                    setAdminError('❌ Password salah!');
+                }
+            };
+
+            const handleAdminLogout = () => {
+                setIsAdmin(false);
+                sessionStorage.removeItem('isAdmin');
+            };
+
+            const exportData = () => {
+                const dataStr = JSON.stringify(services, null, 2);
+                const dataBlob = new Blob([dataStr], { type: 'application/json' });
+                const url = URL.createObjectURL(dataBlob);
+                const link = document.createElement('a');
+                link.href = url;
+                link.download = `service-motor-backup-${new Date().toISOString().split('T')[0]}.json`;
+                link.click();
+            };
+
+            const deleteAllData = async () => {
+                if (confirm('⚠️ PERINGATAN! Ini akan menghapus SEMUA data service. Apakah Anda yakin?')) {
+                    if (confirm('Konfirmasi sekali lagi: HAPUS SEMUA DATA?')) {
+                        try {
+                            await firebase.database().ref('services').remove();
+                            alert('✅ Semua data berhasil dihapus!');
+                        } catch (err) {
+                            alert('❌ Error menghapus data: ' + err.message);
+                        }
+                    }
+                }
             };
 
             const handleInputChange = (e) => {
@@ -221,7 +276,6 @@ const firebaseConfig = {
                 return service ? service.icon : '🔧';
             };
 
-            // WhatsApp Functions
             const openWhatsAppModal = (service) => {
                 setSelectedService(service);
                 setShowWhatsAppModal(true);
@@ -243,7 +297,6 @@ ${selectedService.catatan ? `\n💬 Catatan: ${selectedService.catatan}` : ''}
 
                 let waUrl;
                 if (phoneNumber && phoneNumber.trim() !== '') {
-                    // Format nomor: hapus karakter non-digit dan tambah 62
                     let cleanNumber = phoneNumber.replace(/\D/g, '');
                     if (cleanNumber.startsWith('0')) {
                         cleanNumber = '62' + cleanNumber.substring(1);
@@ -280,82 +333,37 @@ ${selectedService.catatan ? `\n💬 Catatan: ${selectedService.catatan}` : ''}
                 window.open(waUrl, '_blank');
             };
 
-            const checkNearbyServices = () => {
-                // Filter services yang mendekati jadwal (misalnya dalam 500 km)
-                return services.filter(s => {
-                    if (!s.kmNextService) return false;
-                    // Ini contoh, di production bisa dibandingkan dengan KM motor saat ini
-                    return true;
-                });
-            };
-
             const sortedServices = [...services].sort((a, b) => 
                 new Date(b.tanggalService) - new Date(a.tanggalService)
             );
 
-            if (error && !firebaseInitialized) {
-                return (
-                    <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 py-8 px-4">
-                        <div className="max-w-4xl mx-auto">
-                            <div className="bg-white rounded-2xl shadow-xl p-8">
-                                <h1 className="text-3xl font-bold text-gray-800 mb-6">
-                                    🏍️ Service Motor App - Setup Firebase
-                                </h1>
-                                
-                                <div className="bg-yellow-50 border-l-4 border-yellow-400 p-6 mb-6">
-                                    <p className="text-lg font-semibold text-yellow-800 mb-2">{error}</p>
-                                </div>
+            // Filter untuk user biasa: hanya tampilkan service terbaru per kombinasi jenisService + jenisMotor + merkMotor
+            const getLatestServicesForUser = () => {
+                const serviceMap = new Map();
+                
+                sortedServices.forEach(service => {
+                    const key = `${service.jenisService}-${service.jenisMotor}-${service.merkMotor}`;
+                    
+                    // Hanya simpan yang pertama (terbaru) untuk setiap kombinasi
+                    if (!serviceMap.has(key)) {
+                        serviceMap.set(key, service);
+                    }
+                });
+                
+                return Array.from(serviceMap.values());
+            };
 
-                                <div className="space-y-6">
-                                    <div>
-                                        <h2 className="text-2xl font-bold text-gray-800 mb-4">📋 Panduan Setup Firebase:</h2>
-                                        
-                                        <ol className="list-decimal list-inside space-y-4 text-gray-700">
-                                            <li className="font-semibold">
-                                                Buat Project Firebase
-                                                <ul className="list-disc list-inside ml-6 mt-2 space-y-2 font-normal">
-                                                    <li>Kunjungi <a href="https://console.firebase.google.com" target="_blank" className="text-blue-600 hover:underline">https://console.firebase.google.com</a></li>
-                                                    <li>Klik "Add project" atau "Tambah project"</li>
-                                                    <li>Beri nama project (misal: "service-motor-app")</li>
-                                                    <li>Ikuti wizard setup hingga selesai</li>
-                                                </ul>
-                                            </li>
+            // Cek apakah service sudah lewat 2 bulan
+            const isServiceOverdue = (tanggalService) => {
+                const serviceDate = new Date(tanggalService);
+                const now = new Date();
+                const diffMonths = (now.getFullYear() - serviceDate.getFullYear()) * 12 + 
+                                 (now.getMonth() - serviceDate.getMonth());
+                return diffMonths >= 2;
+            };
 
-                                            <li className="font-semibold">
-                                                Setup Realtime Database
-                                                <ul className="list-disc list-inside ml-6 mt-2 space-y-2 font-normal">
-                                                    <li>Di sidebar, pilih "Build" → "Realtime Database"</li>
-                                                    <li>Klik "Create Database"</li>
-                                                    <li>Pilih lokasi server (misalnya: singapore-southasia1)</li>
-                                                    <li>Pilih "Start in test mode" untuk testing</li>
-                                                </ul>
-                                            </li>
-
-                                            <li className="font-semibold">
-                                                Dapatkan Konfigurasi Firebase
-                                                <ul className="list-disc list-inside ml-6 mt-2 space-y-2 font-normal">
-                                                    <li>Klik ⚙️ → "Project settings"</li>
-                                                    <li>Scroll ke "Your apps" → klik Web "&lt;/&gt;"</li>
-                                                    <li>Copy konfigurasi Firebase</li>
-                                                </ul>
-                                            </li>
-
-                                            <li className="font-semibold">
-                                                Update Kode di GitHub
-                                                <ul className="list-disc list-inside ml-6 mt-2 space-y-2 font-normal">
-                                                    <li>Edit index.html di GitHub</li>
-                                                    <li>Ganti firebaseConfig dengan config Anda</li>
-                                                    <li>Commit changes</li>
-                                                </ul>
-                                            </li>
-                                        </ol>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                );
-            }
+            // Pilih data yang akan ditampilkan
+            const displayServices = isAdmin ? sortedServices : getLatestServicesForUser();
 
             if (loading) {
                 return (
@@ -379,10 +387,28 @@ ${selectedService.catatan ? `\n💬 Catatan: ${selectedService.catatan}` : ''}
                                         🏍️ Service Motor App
                                         <span className="text-sm bg-green-100 text-green-700 px-3 py-1 rounded-full">🌐 Online</span>
                                         <span className="text-sm bg-green-100 text-green-700 px-3 py-1 rounded-full">📱 WhatsApp</span>
+                                        {isAdmin && (
+                                            <span className="text-sm bg-red-100 text-red-700 px-3 py-1 rounded-full">🔐 Admin</span>
+                                        )}
                                     </h1>
                                     <p className="text-gray-600 mt-2">Catat dan pantau jadwal service motor dengan notifikasi WhatsApp</p>
                                 </div>
                                 <div className="flex gap-2 flex-wrap">
+                                    {!isAdmin ? (
+                                        <button
+                                            onClick={() => setShowAdminLogin(true)}
+                                            className="bg-gradient-to-r from-red-600 to-rose-600 text-white px-4 py-2 rounded-xl font-semibold hover:from-red-700 hover:to-rose-700 transition-all shadow-lg text-sm"
+                                        >
+                                            🔐 Admin
+                                        </button>
+                                    ) : (
+                                        <button
+                                            onClick={handleAdminLogout}
+                                            className="bg-gradient-to-r from-gray-600 to-gray-700 text-white px-4 py-2 rounded-xl font-semibold hover:from-gray-700 hover:to-gray-800 transition-all shadow-lg text-sm"
+                                        >
+                                            🚪 Logout Admin
+                                        </button>
+                                    )}
                                     <button
                                         onClick={sendWhatsAppSummary}
                                         disabled={services.length === 0}
@@ -401,7 +427,186 @@ ${selectedService.catatan ? `\n💬 Catatan: ${selectedService.catatan}` : ''}
                             </div>
                         </div>
 
-                        {/* Form */}
+                        {/* Admin Panel - Show directly when admin logged in */}
+                        {isAdmin && (
+                            <div className="bg-gradient-to-r from-red-50 to-rose-50 border-2 border-red-200 rounded-2xl shadow-xl p-6 mb-6">
+                                <div className="flex items-center justify-between mb-4">
+                                    <h2 className="text-2xl font-bold text-red-800 flex items-center gap-2">
+                                        🔐 Admin Panel - Database Management
+                                    </h2>
+                                    <div className="flex gap-2">
+                                        <button
+                                            onClick={exportData}
+                                            className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg font-semibold transition-all text-sm"
+                                        >
+                                            💾 Backup JSON
+                                        </button>
+                                        <button
+                                            onClick={deleteAllData}
+                                            className="bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded-lg font-semibold transition-all text-sm"
+                                        >
+                                            🗑️ Hapus Semua
+                                        </button>
+                                    </div>
+                                </div>
+
+                                <div className="bg-white p-4 rounded-lg mb-4">
+                                    <h3 className="font-bold text-gray-800 mb-2">📊 Statistik Database</h3>
+                                    <div className="grid grid-cols-3 gap-4">
+                                        <div>
+                                            <p className="text-gray-600 text-sm">Total Records</p>
+                                            <p className="text-2xl font-bold text-blue-600">{services.length}</p>
+                                        </div>
+                                        <div>
+                                            <p className="text-gray-600 text-sm">Unique Motors</p>
+                                            <p className="text-2xl font-bold text-green-600">
+                                                {new Set(services.map(s => `${s.merkMotor} ${s.jenisMotor}`)).size}
+                                            </p>
+                                        </div>
+                                        <div>
+                                            <p className="text-gray-600 text-sm">Database</p>
+                                            <p className="text-lg font-bold text-purple-600">Firebase RT</p>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                {/* Admin Table CRUD */}
+                                <div className="bg-white rounded-lg overflow-hidden">
+                                    <div className="overflow-x-auto">
+                                        <table className="w-full text-sm">
+                                            <thead className="bg-gray-100 border-b-2 border-gray-200">
+                                                <tr>
+                                                    <th className="px-4 py-3 text-left font-semibold text-gray-700">Tanggal</th>
+                                                    <th className="px-4 py-3 text-left font-semibold text-gray-700">Jenis Service</th>
+                                                    <th className="px-4 py-3 text-left font-semibold text-gray-700">Motor</th>
+                                                    <th className="px-4 py-3 text-left font-semibold text-gray-700">KM Saat Ganti</th>
+                                                    <th className="px-4 py-3 text-left font-semibold text-gray-700">KM Next</th>
+                                                    <th className="px-4 py-3 text-left font-semibold text-gray-700">Catatan</th>
+                                                    <th className="px-4 py-3 text-center font-semibold text-gray-700">Actions</th>
+                                                </tr>
+                                            </thead>
+                                            <tbody>
+                                                {sortedServices.length === 0 ? (
+                                                    <tr>
+                                                        <td colSpan="7" className="px-4 py-8 text-center text-gray-500">
+                                                            Belum ada data
+                                                        </td>
+                                                    </tr>
+                                                ) : (
+                                                    sortedServices.map((service, index) => (
+                                                        <tr 
+                                                            key={service.id}
+                                                            className={`border-b border-gray-100 hover:bg-gray-50 ${
+                                                                index % 2 === 0 ? 'bg-white' : 'bg-gray-50'
+                                                            }`}
+                                                        >
+                                                            <td className="px-4 py-3 text-gray-800">
+                                                                {new Date(service.tanggalService).toLocaleDateString('id-ID', {
+                                                                    day: '2-digit',
+                                                                    month: 'short',
+                                                                    year: 'numeric'
+                                                                })}
+                                                            </td>
+                                                            <td className="px-4 py-3">
+                                                                <span className="text-gray-800 font-medium">
+                                                                    {getServiceIcon(service.jenisService)} {service.jenisService}
+                                                                </span>
+                                                            </td>
+                                                            <td className="px-4 py-3 text-gray-800">
+                                                                <div className="font-medium">{service.merkMotor}</div>
+                                                                <div className="text-xs text-gray-500">{service.jenisMotor}</div>
+                                                            </td>
+                                                            <td className="px-4 py-3 text-gray-800 font-medium">
+                                                                {service.kmSaatGanti.toLocaleString('id-ID')} km
+                                                            </td>
+                                                            <td className="px-4 py-3 text-orange-600 font-bold">
+                                                                {service.kmNextService.toLocaleString('id-ID')} km
+                                                            </td>
+                                                            <td className="px-4 py-3 text-gray-600 text-xs max-w-xs truncate">
+                                                                {service.catatan || '-'}
+                                                            </td>
+                                                            <td className="px-4 py-3">
+                                                                <div className="flex gap-2 justify-center">
+                                                                    <button
+                                                                        onClick={() => handleEdit(service)}
+                                                                        className="p-1.5 text-blue-600 hover:bg-blue-100 rounded transition-all"
+                                                                        title="Edit"
+                                                                    >
+                                                                        ✏️
+                                                                    </button>
+                                                                    <button
+                                                                        onClick={() => handleDelete(service.id)}
+                                                                        className="p-1.5 text-red-600 hover:bg-red-100 rounded transition-all"
+                                                                        title="Hapus"
+                                                                    >
+                                                                        🗑️
+                                                                    </button>
+                                                                </div>
+                                                            </td>
+                                                        </tr>
+                                                    ))
+                                                )}
+                                            </tbody>
+                                        </table>
+                                    </div>
+                                </div>
+
+                                <div className="mt-4 bg-yellow-50 border border-yellow-200 p-4 rounded-lg">
+                                    <p className="text-sm text-yellow-800">
+                                        <strong>⚠️ Info:</strong> Admin melihat SEMUA data historis. User biasa hanya melihat service terbaru per jenis & motor. Password admin ada di baris 54 file HTML.
+                                    </p>
+                                </div>
+                            </div>
+                        )}
+
+                        {/* Admin Login Modal */}
+                        {showAdminLogin && !isAdmin && (
+                            <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+                                <div className="bg-white rounded-2xl shadow-2xl max-w-md w-full p-6">
+                                    <h3 className="text-2xl font-bold text-gray-800 mb-4 flex items-center gap-2">
+                                        🔐 Admin Login
+                                    </h3>
+                                    
+                                    <div className="mb-6">
+                                        <label className="block text-sm font-semibold text-gray-700 mb-2">
+                                            Password Admin
+                                        </label>
+                                        <input
+                                            type="password"
+                                            value={adminPassword}
+                                            onChange={(e) => setAdminPassword(e.target.value)}
+                                            onKeyPress={(e) => e.key === 'Enter' && handleAdminLogin()}
+                                            placeholder="Masukkan password admin"
+                                            className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-transparent"
+                                        />
+                                        {adminError && (
+                                            <p className="text-red-600 text-sm mt-2">{adminError}</p>
+                                        )}
+                                    </div>
+
+                                    <div className="flex gap-3">
+                                        <button
+                                            onClick={handleAdminLogin}
+                                            className="flex-1 bg-gradient-to-r from-red-600 to-rose-600 text-white px-6 py-3 rounded-lg font-semibold hover:from-red-700 hover:to-rose-700 transition-all shadow-md"
+                                        >
+                                            🔓 Login
+                                        </button>
+                                        <button
+                                            onClick={() => {
+                                                setShowAdminLogin(false);
+                                                setAdminPassword('');
+                                                setAdminError('');
+                                            }}
+                                            className="px-6 py-3 border-2 border-gray-300 text-gray-700 rounded-lg font-semibold hover:bg-gray-50 transition-all"
+                                        >
+                                            Batal
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                        )}
+
+                        {/* Form (same as before) */}
                         {showForm && (
                             <div className="bg-white rounded-2xl shadow-xl p-6 mb-6">
                                 <h2 className="text-2xl font-bold text-gray-800 mb-6">
@@ -540,101 +745,126 @@ ${selectedService.catatan ? `\n💬 Catatan: ${selectedService.catatan}` : ''}
                             </div>
                         )}
 
-                        {/* Services List */}
-                        <div className="bg-white rounded-2xl shadow-xl p-6">
-                            <h2 className="text-2xl font-bold text-gray-800 mb-6 flex items-center gap-2">
-                                📋 Riwayat Service ({services.length})
-                            </h2>
+                        {/* Services List - Only for non-admin users */}
+                        {!isAdmin && (
+                            <div className="bg-white rounded-2xl shadow-xl p-6">
+                                <h2 className="text-2xl font-bold text-gray-800 mb-6 flex items-center gap-2">
+                                    📋 Riwayat Service ({isAdmin ? services.length : displayServices.length})
+                                    {!isAdmin && services.length > displayServices.length && (
+                                        <span className="text-sm text-gray-500 font-normal">
+                                            (Menampilkan service terbaru per motor)
+                                        </span>
+                                    )}
+                                </h2>
 
-                            {services.length === 0 ? (
-                                <div className="text-center py-16">
-                                    <div className="text-6xl mb-4">🏍️</div>
-                                    <p className="text-gray-500 text-lg">Belum ada data service</p>
-                                    <p className="text-gray-400 mt-2">Klik tombol "Tambah Service" untuk memulai</p>
-                                </div>
-                            ) : (
-                                <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-                                    {sortedServices.map(service => (
-                                        <div 
-                                            key={service.id}
-                                            className="border-2 border-gray-200 rounded-xl p-5 hover:shadow-lg transition-all hover:border-blue-300"
-                                        >
-                                            <div className="flex items-start justify-between mb-4">
-                                                <div className="flex items-center gap-3">
-                                                    <span className="text-3xl">{getServiceIcon(service.jenisService)}</span>
-                                                    <div>
-                                                        <h3 className="font-bold text-lg text-gray-800">
-                                                            {service.jenisService}
-                                                        </h3>
-                                                        <p className="text-sm text-gray-600">
-                                                            {service.merkMotor} {service.jenisMotor}
-                                                        </p>
-                                                    </div>
-                                                </div>
-                                                <div className="flex gap-2">
-                                                    <button
-                                                        onClick={() => handleEdit(service)}
-                                                        className="p-2 text-blue-600 hover:bg-blue-50 rounded-lg transition-all"
-                                                        title="Edit"
-                                                    >
-                                                        ✏️
-                                                    </button>
-                                                    <button
-                                                        onClick={() => handleDelete(service.id)}
-                                                        className="p-2 text-red-600 hover:bg-red-50 rounded-lg transition-all"
-                                                        title="Hapus"
-                                                    >
-                                                        🗑️
-                                                    </button>
-                                                </div>
-                                            </div>
-
-                                            <div className="grid grid-cols-2 gap-3 text-sm">
-                                                <div className="bg-blue-50 p-3 rounded-lg">
-                                                    <p className="text-gray-600 mb-1">📅 Tanggal Service</p>
-                                                    <p className="font-semibold text-gray-800">
-                                                        {new Date(service.tanggalService).toLocaleDateString('id-ID', {
-                                                            day: 'numeric',
-                                                            month: 'long',
-                                                            year: 'numeric'
-                                                        })}
-                                                    </p>
-                                                </div>
-                                                <div className="bg-green-50 p-3 rounded-lg">
-                                                    <p className="text-gray-600 mb-1">📊 KM Saat Ganti</p>
-                                                    <p className="font-semibold text-gray-800">
-                                                        {service.kmSaatGanti.toLocaleString('id-ID')} km
-                                                    </p>
-                                                </div>
-                                                <div className="bg-yellow-50 p-3 rounded-lg col-span-2">
-                                                    <p className="text-gray-600 mb-1">🎯 Service Berikutnya</p>
-                                                    <p className="font-bold text-lg text-orange-600">
-                                                        {service.kmNextService.toLocaleString('id-ID')} km
-                                                    </p>
-                                                </div>
-                                            </div>
-
-                                            <div className="mt-4">
-                                                <button
-                                                    onClick={() => openWhatsAppModal(service)}
-                                                    className="w-full bg-gradient-to-r from-green-500 to-green-600 hover:from-green-600 hover:to-green-700 text-white px-4 py-3 rounded-lg font-semibold transition-all shadow-md hover:shadow-lg flex items-center justify-center gap-2"
+                                {displayServices.length === 0 ? (
+                                    <div className="text-center py-16">
+                                        <div className="text-6xl mb-4">🏍️</div>
+                                        <p className="text-gray-500 text-lg">Belum ada data service</p>
+                                        <p className="text-gray-400 mt-2">Klik tombol "Tambah Service" untuk memulai</p>
+                                    </div>
+                                ) : (
+                                    <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+                                        {displayServices.map(service => {
+                                            const isOverdue = isServiceOverdue(service.tanggalService);
+                                            
+                                            return (
+                                                <div 
+                                                    key={service.id}
+                                                    className={`border-2 rounded-xl p-5 hover:shadow-lg transition-all ${
+                                                        isOverdue 
+                                                            ? 'bg-red-50 border-red-300 hover:border-red-400' 
+                                                            : 'border-gray-200 hover:border-blue-300'
+                                                    }`}
                                                 >
-                                                    <span className="text-xl">📱</span>
-                                                    Kirim Reminder via WhatsApp
-                                                </button>
-                                            </div>
+                                                    {isOverdue && (
+                                                        <div className="bg-red-500 text-white px-3 py-1 rounded-lg mb-3 text-sm font-semibold flex items-center gap-2">
+                                                            ⚠️ Sudah lewat 2 bulan! Segera service!
+                                                        </div>
+                                                    )}
+                                                    
+                                                    <div className="flex items-start justify-between mb-4">
+                                                        <div className="flex items-center gap-3">
+                                                            <span className="text-3xl">{getServiceIcon(service.jenisService)}</span>
+                                                            <div>
+                                                                <h3 className="font-bold text-lg text-gray-800">
+                                                                    {service.jenisService}
+                                                                </h3>
+                                                                <p className="text-sm text-gray-600">
+                                                                    {service.merkMotor} {service.jenisMotor}
+                                                                </p>
+                                                            </div>
+                                                        </div>
+                                                        <div className="flex gap-2">
+                                                            <button
+                                                                onClick={() => handleEdit(service)}
+                                                                className="p-2 text-blue-600 hover:bg-blue-50 rounded-lg transition-all"
+                                                                title="Edit"
+                                                            >
+                                                                ✏️
+                                                            </button>
+                                                            <button
+                                                                onClick={() => handleDelete(service.id)}
+                                                                className="p-2 text-red-600 hover:bg-red-50 rounded-lg transition-all"
+                                                                title="Hapus"
+                                                            >
+                                                                🗑️
+                                                            </button>
+                                                        </div>
+                                                    </div>
 
-                                            {service.catatan && (
-                                                <div className="mt-3 p-3 bg-gray-50 rounded-lg">
-                                                    <p className="text-xs text-gray-600 mb-1">💬 Catatan:</p>
-                                                    <p className="text-sm text-gray-800">{service.catatan}</p>
+                                                    <div className="grid grid-cols-2 gap-3 text-sm">
+                                                        <div className={`p-3 rounded-lg ${isOverdue ? 'bg-red-100' : 'bg-blue-50'}`}>
+                                                            <p className="text-gray-600 mb-1">📅 Tanggal Service</p>
+                                                            <p className={`font-semibold ${isOverdue ? 'text-red-800' : 'text-gray-800'}`}>
+                                                                {new Date(service.tanggalService).toLocaleDateString('id-ID', {
+                                                                    day: 'numeric',
+                                                                    month: 'long',
+                                                                    year: 'numeric'
+                                                                })}
+                                                            </p>
+                                                        </div>
+                                                        <div className="bg-green-50 p-3 rounded-lg">
+                                                            <p className="text-gray-600 mb-1">📊 KM Saat Ganti</p>
+                                                            <p className="font-semibold text-gray-800">
+                                                                {service.kmSaatGanti.toLocaleString('id-ID')} km
+                                                            </p>
+                                                        </div>
+                                                        <div className="bg-yellow-50 p-3 rounded-lg col-span-2">
+                                                            <p className="text-gray-600 mb-1">🎯 Service Berikutnya</p>
+                                                            <p className="font-bold text-lg text-orange-600">
+                                                                {service.kmNextService.toLocaleString('id-ID')} km
+                                                            </p>
+                                                        </div>
+                                                    </div>
+
+                                                    <div className="mt-4">
+                                                        <button
+                                                            onClick={() => openWhatsAppModal(service)}
+                                                            className={`w-full text-white px-4 py-3 rounded-lg font-semibold transition-all shadow-md hover:shadow-lg flex items-center justify-center gap-2 ${
+                                                                isOverdue
+                                                                    ? 'bg-gradient-to-r from-red-500 to-red-600 hover:from-red-600 hover:to-red-700'
+                                                                    : 'bg-gradient-to-r from-green-500 to-green-600 hover:from-green-600 hover:to-green-700'
+                                                            }`}
+                                                        >
+                                                            <span className="text-xl">📱</span>
+                                                            Kirim Reminder via WhatsApp
+                                                        </button>
+                                                    </div>
+
+                                                    {service.catatan && (
+                                                        <div className="mt-3 p-3 bg-gray-50 rounded-lg">
+                                                            <p className="text-xs text-gray-600 mb-1">💬 Catatan:</p>
+                                                            <p className="text-sm text-gray-800">{service.catatan}</p>
+                                                        </div>
+                                                    )}
                                                 </div>
-                                            )}
-                                        </div>
-                                    ))}
-                                </div>
-                            )}
-                        </div>
+                                            );
+                                        })}
+                                    </div>
+                                )}
+                            </div>
+                        )}
 
                         {/* WhatsApp Modal */}
                         {showWhatsAppModal && selectedService && (
@@ -701,7 +931,7 @@ ${selectedService.catatan ? `\n💬 Catatan: ${selectedService.catatan}` : ''}
                         {/* Footer */}
                         <div className="text-center mt-8 text-gray-600">
                             <p className="text-sm">🌐 Data tersimpan di Firebase Realtime Database</p>
-                            <p className="text-xs mt-1 text-gray-500">📱 Notifikasi WhatsApp terintegrasi</p>
+                            <p className="text-xs mt-1 text-gray-500">📱 Notifikasi WhatsApp terintegrasi • 🔐 Admin Protected</p>
                         </div>
                     </div>
                 </div>
