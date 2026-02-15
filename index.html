@@ -3,48 +3,681 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Service Motor App - Admin Protected</title>
+    <title>⚡ JARVIS | Motor Service Engineering System</title>
+    <meta name="description" content="JARVIS-powered motor service tracking system">
+    <meta name="theme-color" content="#000000">
+    
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;500;600;700;800;900&family=Rajdhani:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    
+    <!-- Flatpickr CSS & JS -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css">
+    <script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
+    
     <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
     <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
     <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
-    <script src="https://cdn.tailwindcss.com"></script>
     
     <!-- Firebase -->
     <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-database-compat.js"></script>
     
     <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
         body {
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            font-family: 'Rajdhani', 'Orbitron', sans-serif;
+            background: #000000;
+            color: #00e5ff;
+            overflow-x: hidden;
+            position: relative;
         }
-        .loading-spinner {
-            border: 3px solid #f3f3f3;
-            border-top: 3px solid #3498db;
+        
+        /* Grid Background Overlay */
+        body::before {
+            content: '';
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-image: 
+                linear-gradient(rgba(0, 229, 255, 0.03) 1px, transparent 1px),
+                linear-gradient(90deg, rgba(0, 229, 255, 0.03) 1px, transparent 1px);
+            background-size: 50px 50px;
+            pointer-events: none;
+            z-index: 0;
+        }
+        
+        /* JARVIS Typography */
+        .jarvis-title {
+            font-family: 'Orbitron', monospace;
+            font-weight: 700;
+            letter-spacing: 3px;
+            text-transform: uppercase;
+            color: #00e5ff;
+            text-shadow: 
+                0 0 10px rgba(0, 229, 255, 1),
+                0 0 20px rgba(0, 229, 255, 0.8),
+                0 0 30px rgba(0, 229, 255, 0.6);
+        }
+        
+        .jarvis-text {
+            font-family: 'Rajdhani', sans-serif;
+            font-weight: 500;
+            color: #ffffff;
+            text-shadow: 0 0 5px rgba(0, 229, 255, 0.5);
+        }
+        
+        /* Circular UI Elements */
+        .circle-container {
+            position: relative;
+            width: 200px;
+            height: 200px;
+        }
+        
+        .circle-ring {
+            position: absolute;
+            border: 2px solid rgba(0, 229, 255, 0.3);
             border-radius: 50%;
-            width: 40px;
-            height: 40px;
-            animation: spin 1s linear infinite;
+            animation: rotate-ring 20s linear infinite;
         }
+        
+        .circle-ring-1 {
+            width: 100%;
+            height: 100%;
+            border-top-color: #00e5ff;
+            border-right-color: #00e5ff;
+        }
+        
+        .circle-ring-2 {
+            width: 85%;
+            height: 85%;
+            top: 7.5%;
+            left: 7.5%;
+            border-bottom-color: #ff9500;
+            animation-duration: 15s;
+            animation-direction: reverse;
+        }
+        
+        .circle-ring-3 {
+            width: 70%;
+            height: 70%;
+            top: 15%;
+            left: 15%;
+            border-left-color: #00ff88;
+            animation-duration: 25s;
+        }
+        
+        @keyframes rotate-ring {
+            from { transform: rotate(0deg); }
+            to { transform: rotate(360deg); }
+        }
+        
+        /* Hexagon Background Pattern */
+        .hex-pattern {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            opacity: 0.05;
+            background-image: url("data:image/svg+xml,%3Csvg width='60' height='60' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M30 0l25.98 15v30L30 60 4.02 45V15z' fill='none' stroke='%2300e5ff' stroke-width='1'/%3E%3C/svg%3E");
+            background-size: 60px 60px;
+            pointer-events: none;
+            z-index: 0;
+        }
+        
+        /* Glass Morphism Panels */
+        .glass-panel {
+            background: rgba(13, 17, 23, 0.7);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(0, 229, 255, 0.3);
+            border-radius: 8px;
+            box-shadow: 
+                0 0 20px rgba(0, 229, 255, 0.2),
+                inset 0 0 20px rgba(0, 229, 255, 0.05);
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .glass-panel::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: -100%;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(90deg, transparent, rgba(0, 229, 255, 0.1), transparent);
+            animation: shine 3s infinite;
+        }
+        
+        @keyframes shine {
+            0% { left: -100%; }
+            50%, 100% { left: 100%; }
+        }
+        
+        /* Corner Brackets */
+        .corner-bracket {
+            position: absolute;
+            width: 20px;
+            height: 20px;
+            border: 2px solid #00e5ff;
+        }
+        
+        .corner-tl { top: -1px; left: -1px; border-right: none; border-bottom: none; }
+        .corner-tr { top: -1px; right: -1px; border-left: none; border-bottom: none; }
+        .corner-bl { bottom: -1px; left: -1px; border-right: none; border-top: none; }
+        .corner-br { bottom: -1px; right: -1px; border-left: none; border-top: none; }
+        
+        /* Neon Button */
+        .neon-button {
+            background: transparent;
+            border: 2px solid #00e5ff;
+            color: #00e5ff;
+            padding: 12px 24px;
+            font-family: 'Orbitron', monospace;
+            font-weight: 600;
+            font-size: 14px;
+            letter-spacing: 2px;
+            text-transform: uppercase;
+            cursor: pointer;
+            position: relative;
+            overflow: hidden;
+            transition: all 0.3s ease;
+            box-shadow: 
+                0 0 10px rgba(0, 229, 255, 0.5),
+                inset 0 0 10px rgba(0, 229, 255, 0.1);
+        }
+        
+        .neon-button:hover {
+            background: rgba(0, 229, 255, 0.1);
+            box-shadow: 
+                0 0 20px rgba(0, 229, 255, 0.8),
+                inset 0 0 20px rgba(0, 229, 255, 0.2);
+            transform: translateY(-2px);
+        }
+        
+        .neon-button::before {
+            content: '';
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            width: 0;
+            height: 0;
+            border-radius: 50%;
+            background: rgba(0, 229, 255, 0.3);
+            transform: translate(-50%, -50%);
+            transition: width 0.5s, height 0.5s;
+        }
+        
+        .neon-button:active::before {
+            width: 300px;
+            height: 300px;
+        }
+        
+        /* Success Button */
+        .neon-button-success {
+            border-color: #00ff88;
+            color: #00ff88;
+            box-shadow: 
+                0 0 10px rgba(0, 255, 136, 0.5),
+                inset 0 0 10px rgba(0, 255, 136, 0.1);
+        }
+        
+        .neon-button-success:hover {
+            background: rgba(0, 255, 136, 0.1);
+            box-shadow: 
+                0 0 20px rgba(0, 255, 136, 0.8),
+                inset 0 0 20px rgba(0, 255, 136, 0.2);
+        }
+        
+        /* Danger Button */
+        .neon-button-danger {
+            border-color: #ff0844;
+            color: #ff0844;
+            box-shadow: 
+                0 0 10px rgba(255, 8, 68, 0.5),
+                inset 0 0 10px rgba(255, 8, 68, 0.1);
+        }
+        
+        .neon-button-danger:hover {
+            background: rgba(255, 8, 68, 0.1);
+            box-shadow: 
+                0 0 20px rgba(255, 8, 68, 0.8),
+                inset 0 0 20px rgba(255, 8, 68, 0.2);
+        }
+        
+        /* Warning Button */
+        .neon-button-warning {
+            border-color: #ff9500;
+            color: #ff9500;
+            box-shadow: 
+                0 0 10px rgba(255, 149, 0, 0.5),
+                inset 0 0 10px rgba(255, 149, 0, 0.1);
+        }
+        
+        .neon-button-warning:hover {
+            background: rgba(255, 149, 0, 0.1);
+            box-shadow: 
+                0 0 20px rgba(255, 149, 0, 0.8),
+                inset 0 0 20px rgba(255, 149, 0, 0.2);
+        }
+        
+        /* Input Fields */
+        .jarvis-input {
+            background: rgba(0, 0, 0, 0.6);
+            border: 1px solid rgba(0, 229, 255, 0.3);
+            border-radius: 4px;
+            padding: 12px 16px;
+            color: #ffffff;
+            font-family: 'Rajdhani', sans-serif;
+            font-size: 16px;
+            font-weight: 500;
+            outline: none;
+            transition: all 0.3s ease;
+            box-shadow: inset 0 0 10px rgba(0, 229, 255, 0.05);
+        }
+        
+        .jarvis-input:focus {
+            border-color: #00e5ff;
+            box-shadow: 
+                0 0 15px rgba(0, 229, 255, 0.5),
+                inset 0 0 15px rgba(0, 229, 255, 0.1);
+        }
+        
+        .jarvis-input::placeholder {
+            color: rgba(255, 255, 255, 0.3);
+        }
+        
+        /* Data Display Boxes */
+        .data-box {
+            background: rgba(0, 229, 255, 0.05);
+            border: 1px solid rgba(0, 229, 255, 0.3);
+            border-left: 3px solid #00e5ff;
+            padding: 12px;
+            margin: 8px 0;
+            position: relative;
+        }
+        
+        .data-box-orange {
+            border-left-color: #ff9500;
+            background: rgba(255, 149, 0, 0.05);
+        }
+        
+        .data-box-green {
+            border-left-color: #00ff88;
+            background: rgba(0, 255, 136, 0.05);
+        }
+        
+        .data-box-red {
+            border-left-color: #ff0844;
+            background: rgba(255, 56, 106, 0.142);
+        }
+        
+        /* Status Indicators */
+        .status-dot {
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            display: inline-block;
+            margin-right: 8px;
+            box-shadow: 0 0 10px currentColor;
+            animation: pulse-dot 2s infinite;
+        }
+        
+        @keyframes pulse-dot {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.5; }
+        }
+        
+        .status-online { background: #00ff88; color: #00ff88; }
+        .status-warning { background: #ff9500; color: #ff9500; }
+        .status-critical { background: #ff0844; color: #ff0844; }
+        
+        /* Loading Spinner */
+        .jarvis-spinner {
+            width: 60px;
+            height: 60px;
+            border: 3px solid rgba(0, 229, 255, 0.2);
+            border-top: 3px solid #00e5ff;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            box-shadow: 0 0 20px rgba(0, 229, 255, 0.5);
+        }
+        
         @keyframes spin {
             0% { transform: rotate(0deg); }
             100% { transform: rotate(360deg); }
         }
-        .pulse {
-            animation: pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+        
+        /* Scrollbar */
+        ::-webkit-scrollbar {
+            width: 12px;
+            height: 12px;
         }
-        @keyframes pulse {
-            0%, 100% { opacity: 1; }
-            50% { opacity: .5; }
+        
+        ::-webkit-scrollbar-track {
+            background: #000000;
+            border: 1px solid rgba(0, 229, 255, 0.1);
+        }
+        
+        ::-webkit-scrollbar-thumb {
+            background: linear-gradient(180deg, #00e5ff 0%, #0088aa 100%);
+            border-radius: 6px;
+            border: 2px solid #000000;
+            box-shadow: 0 0 10px rgba(0, 229, 255, 0.5);
+        }
+        
+        ::-webkit-scrollbar-thumb:hover {
+            background: #00e5ff;
+            box-shadow: 0 0 15px rgba(0, 229, 255, 0.8);
+        }
+        
+        /* Table Styles */
+        .jarvis-table {
+            width: 100%;
+            border-collapse: separate;
+            border-spacing: 0;
+        }
+        
+        .jarvis-table thead {
+            background: rgba(0, 229, 255, 0.1);
+            border-top: 2px solid #00e5ff;
+            border-bottom: 2px solid #00e5ff;
+        }
+        
+        .jarvis-table th {
+            padding: 16px;
+            text-align: left;
+            color: #00e5ff;
+            font-family: 'Orbitron', monospace;
+            font-weight: 700;
+            font-size: 12px;
+            letter-spacing: 2px;
+            text-transform: uppercase;
+            text-shadow: 0 0 10px rgba(0, 229, 255, 0.8);
+        }
+        
+        .jarvis-table td {
+            padding: 16px;
+            border-bottom: 1px solid rgba(0, 229, 255, 0.1);
+            color: #ffffff;
+            font-family: 'Rajdhani', sans-serif;
+            font-weight: 500;
+        }
+        
+        .jarvis-table tbody tr {
+            transition: all 0.3s ease;
+        }
+        
+        .jarvis-table tbody tr:hover {
+            background: rgba(0, 229, 255, 0.05);
+            box-shadow: inset 0 0 20px rgba(0, 229, 255, 0.1);
+        }
+        
+        /* Responsive */
+        @media (max-width: 768px) {
+            .jarvis-title {
+                font-size: 18px;
+                letter-spacing: 2px;
+            }
+            
+            .circle-container {
+                width: 150px;
+                height: 150px;
+            }
+            
+            .neon-button {
+                padding: 10px 20px;
+                font-size: 12px;
+            }
+        }
+        
+        /* ===== FLATPICKR JARVIS STYLE ===== */
+        .flatpickr-calendar {
+            background: rgba(0, 0, 0, 0.95) !important;
+            border: 2px solid #00e5ff !important;
+            box-shadow: 
+                0 0 30px rgba(0, 229, 255, 0.6),
+                inset 0 0 20px rgba(0, 229, 255, 0.1) !important;
+            border-radius: 8px !important;
+            font-family: 'Rajdhani', sans-serif !important;
+        }
+        
+        .flatpickr-calendar::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 2px;
+            background: linear-gradient(90deg, transparent, #00e5ff, transparent);
+            animation: scan-calendar 3s linear infinite;
+        }
+        
+        @keyframes scan-calendar {
+            0% { opacity: 0; }
+            50% { opacity: 1; }
+            100% { opacity: 0; }
+        }
+        
+        .flatpickr-months {
+            background: rgba(0, 229, 255, 0.1) !important;
+            border-bottom: 1px solid #00e5ff !important;
+            padding: 10px 0 !important;
+        }
+        
+        .flatpickr-current-month {
+            color: #00e5ff !important;
+            font-family: 'Orbitron', monospace !important;
+            font-weight: 700 !important;
+            font-size: 14px !important;
+            letter-spacing: 2px !important;
+            text-transform: uppercase !important;
+            text-shadow: 0 0 10px rgba(0, 229, 255, 0.8) !important;
+        }
+        
+        .flatpickr-month {
+            color: #00e5ff !important;
+        }
+        
+        .flatpickr-monthDropdown-months {
+            background: rgba(0, 0, 0, 0.9) !important;
+            border: 1px solid #00e5ff !important;
+            color: #00e5ff !important;
+            font-family: 'Rajdhani', sans-serif !important;
+            font-weight: 600 !important;
+        }
+        
+        .flatpickr-monthDropdown-months:hover {
+            background: rgba(0, 229, 255, 0.1) !important;
+        }
+        
+        .numInputWrapper:hover,
+        .flatpickr-monthDropdown-months:hover {
+            background: rgba(0, 229, 255, 0.1) !important;
+        }
+        
+        .numInput {
+            background: transparent !important;
+            color: #00e5ff !important;
+            font-family: 'Orbitron', monospace !important;
+            font-weight: 700 !important;
+        }
+        
+        .flatpickr-prev-month,
+        .flatpickr-next-month {
+            fill: #00e5ff !important;
+            transition: all 0.3s ease !important;
+        }
+        
+        .flatpickr-prev-month:hover,
+        .flatpickr-next-month:hover {
+            fill: #ffffff !important;
+            filter: drop-shadow(0 0 5px #00e5ff) !important;
+        }
+        
+        .flatpickr-prev-month:hover svg,
+        .flatpickr-next-month:hover svg {
+            fill: #ffffff !important;
+        }
+        
+        .flatpickr-weekdays {
+            background: rgba(0, 229, 255, 0.05) !important;
+            border-bottom: 1px solid rgba(0, 229, 255, 0.3) !important;
+        }
+        
+        .flatpickr-weekday {
+            color: #00e5ff !important;
+            font-family: 'Orbitron', monospace !important;
+            font-weight: 600 !important;
+            font-size: 11px !important;
+            letter-spacing: 1px !important;
+            text-shadow: 0 0 5px rgba(0, 229, 255, 0.5) !important;
+        }
+        
+        .flatpickr-days {
+            background: rgba(0, 0, 0, 0.8) !important;
+        }
+        
+        .flatpickr-day {
+            color: #ffffff !important;
+            border: 1px solid transparent !important;
+            font-family: 'Rajdhani', sans-serif !important;
+            font-weight: 500 !important;
+            transition: all 0.2s ease !important;
+        }
+        
+        .flatpickr-day:hover {
+            background: rgba(0, 229, 255, 0.2) !important;
+            border-color: #00e5ff !important;
+            color: #00e5ff !important;
+            box-shadow: 
+                0 0 10px rgba(0, 229, 255, 0.5),
+                inset 0 0 10px rgba(0, 229, 255, 0.2) !important;
+        }
+        
+        .flatpickr-day.today {
+            border-color: #ff9500 !important;
+            background: rgba(255, 149, 0, 0.1) !important;
+            color: #ff9500 !important;
+            font-weight: 700 !important;
+        }
+        
+        .flatpickr-day.today:hover {
+            border-color: #ff9500 !important;
+            background: rgba(255, 149, 0, 0.2) !important;
+            box-shadow: 
+                0 0 10px rgba(255, 149, 0, 0.5),
+                inset 0 0 10px rgba(255, 149, 0, 0.2) !important;
+        }
+        
+        .flatpickr-day.selected {
+            background: #00e5ff !important;
+            border-color: #00e5ff !important;
+            color: #000000 !important;
+            font-weight: 700 !important;
+            box-shadow: 
+                0 0 20px rgba(0, 229, 255, 0.8),
+                inset 0 0 10px rgba(0, 229, 255, 0.3) !important;
+        }
+        
+        .flatpickr-day.selected:hover {
+            background: #00fff2 !important;
+            border-color: #00fff2 !important;
+        }
+        
+        .flatpickr-day.prevMonthDay,
+        .flatpickr-day.nextMonthDay {
+            color: rgba(255, 255, 255, 0.3) !important;
+        }
+        
+        .flatpickr-day.disabled {
+            color: rgba(255, 255, 255, 0.2) !important;
+        }
+        
+        .flatpickr-time {
+            background: rgba(0, 229, 255, 0.05) !important;
+            border-top: 1px solid #00e5ff !important;
+        }
+        
+        .flatpickr-time input {
+            background: transparent !important;
+            color: #00e5ff !important;
+            font-family: 'Orbitron', monospace !important;
+            font-weight: 700 !important;
+        }
+        
+        .flatpickr-time .flatpickr-am-pm {
+            color: #00e5ff !important;
+            font-family: 'Orbitron', monospace !important;
+        }
+        
+        /* Corner brackets for calendar */
+        .flatpickr-calendar::after,
+        .flatpickr-calendar::before {
+            content: '';
+            position: absolute;
+            width: 15px;
+            height: 15px;
+            border: 2px solid #00e5ff;
+        }
+        
+        .flatpickr-calendar::before {
+            top: -2px;
+            left: -2px;
+            border-right: none;
+            border-bottom: none;
+        }
+        
+        .flatpickr-calendar::after {
+            top: -2px;
+            right: -2px;
+            border-left: none;
+            border-bottom: none;
+        }
+        
+        /* Animation Classes */
+        .fade-in {
+            animation: fadeIn 0.5s ease-in;
+        }
+        
+        @keyframes fadeIn {
+            from { opacity: 0; }
+            to { opacity: 1; }
+        }
+        
+        .slide-up {
+            animation: slideUp 0.5s ease-out;
+        }
+        
+        @keyframes slideUp {
+            from {
+                opacity: 0;
+                transform: translateY(30px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
         }
     </style>
 </head>
-<body class="bg-gray-50">
+<body>
+    <div class="hex-pattern"></div>
     <div id="root"></div>
 
     <script type="text/babel">
         const { useState, useEffect } = React;
 
-        // KONFIGURASI FIREBASE
+        // Firebase Configuration
         const firebaseConfig = {
             apiKey: "AIzaSyBiS743krcarz8ojSb7i54Yrni6N4E5gE8",
             authDomain: "service-motor-app.firebaseapp.com",
@@ -56,7 +689,6 @@
             measurementId: "G-LJCGMSNDJG"
         };
 
-        // ADMIN PASSWORD - Ganti dengan password yang Anda inginkan
         const ADMIN_PASSWORD = "admin123";
 
         const SERVICE_TYPES = [
@@ -70,29 +702,17 @@
             { name: 'Ganti Filter Udara', intervalKm: 8000, icon: '💨' },
         ];
 
-        const MOTOR_BRANDS = [
-            'Honda', 'Yamaha', 'Suzuki', 'Kawasaki', 'TVS', 
-            'Vespa', 'Royal Enfield', 'Lainnya'
-        ];
+        const MOTOR_BRANDS = ['Honda', 'Yamaha', 'Suzuki', 'Kawasaki', 'TVS', 'Vespa', 'Royal Enfield', 'Lainnya'];
 
-        function ServiceMotorApp() {
+        function App() {
             const [services, setServices] = useState([]);
-            const [showForm, setShowForm] = useState(false);
-            const [editingId, setEditingId] = useState(null);
             const [loading, setLoading] = useState(true);
-            const [saving, setSaving] = useState(false);
-            const [firebaseInitialized, setFirebaseInitialized] = useState(false);
-            const [error, setError] = useState('');
-            const [showWhatsAppModal, setShowWhatsAppModal] = useState(false);
-            const [selectedService, setSelectedService] = useState(null);
-            const [phoneNumber, setPhoneNumber] = useState('');
-            
-            // Admin states
             const [isAdmin, setIsAdmin] = useState(false);
             const [showAdminLogin, setShowAdminLogin] = useState(false);
             const [adminPassword, setAdminPassword] = useState('');
-            const [adminError, setAdminError] = useState('');
-            
+            const [showForm, setShowForm] = useState(false);
+            const [editingId, setEditingId] = useState(null);
+            const [saving, setSaving] = useState(false);
             const [formData, setFormData] = useState({
                 jenisService: '',
                 jenisMotor: '',
@@ -102,37 +722,51 @@
                 catatan: ''
             });
 
-            let database = null;
-
             useEffect(() => {
                 try {
-                    if (firebaseConfig.apiKey === "YOUR_API_KEY") {
-                        setError('⚠️ Konfigurasi Firebase belum diatur.');
-                        setLoading(false);
-                        return;
-                    }
-
                     if (!firebase.apps.length) {
                         firebase.initializeApp(firebaseConfig);
                     }
-                    database = firebase.database();
-                    setFirebaseInitialized(true);
                     loadServices();
                     
-                    // Check if admin is already logged in (from sessionStorage)
                     const adminStatus = sessionStorage.getItem('isAdmin');
                     if (adminStatus === 'true') {
                         setIsAdmin(true);
                     }
                 } catch (err) {
-                    setError('❌ Error menginisialisasi Firebase: ' + err.message);
+                    console.error('Firebase init error:', err);
                     setLoading(false);
                 }
             }, []);
 
+            // Initialize Flatpickr for date input
+            useEffect(() => {
+                const dateInput = document.getElementById('tanggalServiceInput');
+                if (dateInput && window.flatpickr) {
+                    window.flatpickr(dateInput, {
+                        dateFormat: "Y-m-d",
+                        allowInput: true,
+                        clickOpens: true,
+                        locale: {
+                            firstDayOfWeek: 1,
+                            weekdays: {
+                                shorthand: ['Min', 'Sen', 'Sel', 'Rab', 'Kam', 'Jum', 'Sab'],
+                                longhand: ['Minggu', 'Senin', 'Selasa', 'Rabu', 'Kamis', 'Jumat', 'Sabtu']
+                            },
+                            months: {
+                                shorthand: ['Jan', 'Feb', 'Mar', 'Apr', 'Mei', 'Jun', 'Jul', 'Agt', 'Sep', 'Okt', 'Nov', 'Des'],
+                                longhand: ['Januari', 'Februari', 'Maret', 'April', 'Mei', 'Juni', 'Juli', 'Agustus', 'September', 'Oktober', 'November', 'Desember']
+                            }
+                        },
+                        onChange: function(selectedDates, dateStr) {
+                            setFormData({...formData, tanggalService: dateStr});
+                        }
+                    });
+                }
+            }, [showForm]);
+
             const loadServices = () => {
                 const servicesRef = firebase.database().ref('services');
-                
                 servicesRef.on('value', (snapshot) => {
                     const data = snapshot.val();
                     if (data) {
@@ -146,8 +780,6 @@
                     }
                     setLoading(false);
                 });
-
-                return () => servicesRef.off();
             };
 
             const handleAdminLogin = () => {
@@ -156,9 +788,8 @@
                     sessionStorage.setItem('isAdmin', 'true');
                     setShowAdminLogin(false);
                     setAdminPassword('');
-                    setAdminError('');
                 } else {
-                    setAdminError('❌ Password salah!');
+                    alert('❌ Password salah!');
                 }
             };
 
@@ -167,49 +798,13 @@
                 sessionStorage.removeItem('isAdmin');
             };
 
-            const exportData = () => {
-                const dataStr = JSON.stringify(services, null, 2);
-                const dataBlob = new Blob([dataStr], { type: 'application/json' });
-                const url = URL.createObjectURL(dataBlob);
-                const link = document.createElement('a');
-                link.href = url;
-                link.download = `service-motor-backup-${new Date().toISOString().split('T')[0]}.json`;
-                link.click();
-            };
-
-            const deleteAllData = async () => {
-                if (confirm('⚠️ PERINGATAN! Ini akan menghapus SEMUA data service. Apakah Anda yakin?')) {
-                    if (confirm('Konfirmasi sekali lagi: HAPUS SEMUA DATA?')) {
-                        try {
-                            await firebase.database().ref('services').remove();
-                            alert('✅ Semua data berhasil dihapus!');
-                        } catch (err) {
-                            alert('❌ Error menghapus data: ' + err.message);
-                        }
-                    }
-                }
-            };
-
-            const handleInputChange = (e) => {
-                const { name, value } = e.target;
-                setFormData(prev => ({
-                    ...prev,
-                    [name]: value
-                }));
-            };
-
-            const calculateNextService = (currentKm, serviceType) => {
-                const service = SERVICE_TYPES.find(s => s.name === serviceType);
-                const interval = service ? service.intervalKm : 2000;
-                return parseInt(currentKm) + interval;
-            };
-
             const handleSubmit = async (e) => {
                 e.preventDefault();
                 setSaving(true);
                 
                 try {
-                    const nextKm = calculateNextService(formData.kmSaatGanti, formData.jenisService);
+                    const service = SERVICE_TYPES.find(s => s.name === formData.jenisService);
+                    const nextKm = parseInt(formData.kmSaatGanti) + (service ? service.intervalKm : 2000);
                     
                     const serviceData = {
                         ...formData,
@@ -227,9 +822,18 @@
                         await firebase.database().ref('services').push(serviceData);
                     }
 
-                    resetForm();
+                    setFormData({
+                        jenisService: '',
+                        jenisMotor: '',
+                        merkMotor: '',
+                        tanggalService: '',
+                        kmSaatGanti: '',
+                        catatan: ''
+                    });
+                    setEditingId(null);
+                    setShowForm(false);
                 } catch (err) {
-                    alert('Error menyimpan data: ' + err.message);
+                    alert('Error: ' + err.message);
                 } finally {
                     setSaving(false);
                 }
@@ -249,111 +853,36 @@
             };
 
             const handleDelete = async (id) => {
-                if (confirm('Yakin ingin menghapus data service ini?')) {
+                if (confirm('Hapus data ini?')) {
                     try {
                         await firebase.database().ref('services/' + id).remove();
                     } catch (err) {
-                        alert('Error menghapus data: ' + err.message);
+                        alert('Error: ' + err.message);
                     }
                 }
             };
 
-            const resetForm = () => {
-                setFormData({
-                    jenisService: '',
-                    jenisMotor: '',
-                    merkMotor: '',
-                    tanggalService: '',
-                    kmSaatGanti: '',
-                    catatan: ''
-                });
-                setEditingId(null);
-                setShowForm(false);
+            const exportData = () => {
+                const dataStr = JSON.stringify(services, null, 2);
+                const dataBlob = new Blob([dataStr], { type: 'application/json' });
+                const url = URL.createObjectURL(dataBlob);
+                const link = document.createElement('a');
+                link.href = url;
+                link.download = `service-backup-${new Date().toISOString().split('T')[0]}.json`;
+                link.click();
             };
 
-            const getServiceIcon = (serviceName) => {
-                const service = SERVICE_TYPES.find(s => s.name === serviceName);
-                return service ? service.icon : '🔧';
-            };
-
-            const openWhatsAppModal = (service) => {
-                setSelectedService(service);
-                setShowWhatsAppModal(true);
-            };
-
-            const sendWhatsAppReminder = () => {
-                if (!selectedService) return;
-                
-                const message = `🏍️ *REMINDER SERVICE MOTOR*
-
-📋 Jenis Service: ${selectedService.jenisService}
-🏍️ Motor: ${selectedService.merkMotor} ${selectedService.jenisMotor}
-📅 Service Terakhir: ${new Date(selectedService.tanggalService).toLocaleDateString('id-ID')}
-📊 KM Terakhir: ${selectedService.kmSaatGanti.toLocaleString('id-ID')} km
-🎯 Service Berikutnya: ${selectedService.kmNextService.toLocaleString('id-ID')} km
-${selectedService.catatan ? `\n💬 Catatan: ${selectedService.catatan}` : ''}
-
-⚠️ Jangan lupa service motor ya!`;
-
-                let waUrl;
-                if (phoneNumber && phoneNumber.trim() !== '') {
-                    let cleanNumber = phoneNumber.replace(/\D/g, '');
-                    if (cleanNumber.startsWith('0')) {
-                        cleanNumber = '62' + cleanNumber.substring(1);
-                    } else if (!cleanNumber.startsWith('62')) {
-                        cleanNumber = '62' + cleanNumber;
+            const deleteAllData = async () => {
+                if (confirm('⚠️ HAPUS SEMUA DATA?') && confirm('YAKIN?')) {
+                    try {
+                        await firebase.database().ref('services').remove();
+                        alert('✅ Data terhapus!');
+                    } catch (err) {
+                        alert('Error: ' + err.message);
                     }
-                    waUrl = `https://wa.me/${cleanNumber}?text=${encodeURIComponent(message)}`;
-                } else {
-                    waUrl = `https://wa.me/?text=${encodeURIComponent(message)}`;
                 }
-
-                window.open(waUrl, '_blank');
-                setShowWhatsAppModal(false);
-                setPhoneNumber('');
             };
 
-            const sendWhatsAppSummary = () => {
-                const upcomingServices = services
-                    .filter(s => s.kmNextService)
-                    .sort((a, b) => a.kmNextService - b.kmNextService)
-                    .slice(0, 5);
-
-                let message = `🏍️ *SUMMARY SERVICE MOTOR*\n\n`;
-                message += `📊 Total Service Tercatat: ${services.length}\n\n`;
-                message += `🎯 *Service Berikutnya:*\n`;
-
-                upcomingServices.forEach((service, index) => {
-                    message += `\n${index + 1}. ${service.jenisService}`;
-                    message += `\n   ${service.merkMotor} ${service.jenisMotor}`;
-                    message += `\n   KM: ${service.kmNextService.toLocaleString('id-ID')} km\n`;
-                });
-
-                const waUrl = `https://wa.me/?text=${encodeURIComponent(message)}`;
-                window.open(waUrl, '_blank');
-            };
-
-            const sortedServices = [...services].sort((a, b) => 
-                new Date(b.tanggalService) - new Date(a.tanggalService)
-            );
-
-            // Filter untuk user biasa: hanya tampilkan service terbaru per kombinasi jenisService + jenisMotor + merkMotor
-            const getLatestServicesForUser = () => {
-                const serviceMap = new Map();
-                
-                sortedServices.forEach(service => {
-                    const key = `${service.jenisService}-${service.jenisMotor}-${service.merkMotor}`;
-                    
-                    // Hanya simpan yang pertama (terbaru) untuk setiap kombinasi
-                    if (!serviceMap.has(key)) {
-                        serviceMap.set(key, service);
-                    }
-                });
-                
-                return Array.from(serviceMap.values());
-            };
-
-            // Cek apakah service sudah lewat 2 bulan
             const isServiceOverdue = (tanggalService) => {
                 const serviceDate = new Date(tanggalService);
                 const now = new Date();
@@ -362,583 +891,424 @@ ${selectedService.catatan ? `\n💬 Catatan: ${selectedService.catatan}` : ''}
                 return diffMonths >= 2;
             };
 
-            // Pilih data yang akan ditampilkan
+            const sortedServices = [...services].sort((a, b) => 
+                new Date(b.tanggalService) - new Date(a.tanggalService)
+            );
+
+            const getLatestServicesForUser = () => {
+                const serviceMap = new Map();
+                sortedServices.forEach(service => {
+                    const key = `${service.jenisService}-${service.jenisMotor}-${service.merkMotor}`;
+                    if (!serviceMap.has(key)) {
+                        serviceMap.set(key, service);
+                    }
+                });
+                return Array.from(serviceMap.values());
+            };
+
             const displayServices = isAdmin ? sortedServices : getLatestServicesForUser();
 
             if (loading) {
                 return (
-                    <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 flex items-center justify-center">
-                        <div className="text-center">
-                            <div className="loading-spinner mx-auto mb-4"></div>
-                            <p className="text-gray-600 text-lg">Loading data...</p>
-                        </div>
+                    <div style={{
+                        minHeight: '100vh',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        flexDirection: 'column'
+                    }}>
+                        <div className="jarvis-spinner"></div>
+                        <p className="jarvis-text" style={{marginTop: '20px', fontSize: '18px'}}>
+                            INITIALIZING JARVIS SYSTEM...
+                        </p>
                     </div>
                 );
             }
 
             return (
-                <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 py-8 px-4">
-                    <div className="max-w-6xl mx-auto">
-                        {/* Header */}
-                        <div className="bg-white rounded-2xl shadow-xl p-6 mb-6">
-                            <div className="flex items-center justify-between flex-wrap gap-4">
-                                <div>
-                                    <h1 className="text-3xl font-bold text-gray-800 flex items-center gap-3 flex-wrap">
-                                        🏍️ Service Motor App
-                                        <span className="text-sm bg-green-100 text-green-700 px-3 py-1 rounded-full">🌐 Online</span>
-                                        <span className="text-sm bg-green-100 text-green-700 px-3 py-1 rounded-full">📱 WhatsApp</span>
-                                        {isAdmin && (
-                                            <span className="text-sm bg-red-100 text-red-700 px-3 py-1 rounded-full">🔐 Admin</span>
-                                        )}
-                                    </h1>
-                                    <p className="text-gray-600 mt-2">Catat dan pantau jadwal service motor dengan notifikasi WhatsApp</p>
-                                </div>
-                                <div className="flex gap-2 flex-wrap">
-                                    {!isAdmin ? (
-                                        <button
-                                            onClick={() => setShowAdminLogin(true)}
-                                            className="bg-gradient-to-r from-red-600 to-rose-600 text-white px-4 py-2 rounded-xl font-semibold hover:from-red-700 hover:to-rose-700 transition-all shadow-lg text-sm"
-                                        >
-                                            🔐 Admin
-                                        </button>
-                                    ) : (
-                                        <button
-                                            onClick={handleAdminLogout}
-                                            className="bg-gradient-to-r from-gray-600 to-gray-700 text-white px-4 py-2 rounded-xl font-semibold hover:from-gray-700 hover:to-gray-800 transition-all shadow-lg text-sm"
-                                        >
-                                            🚪 Logout Admin
-                                        </button>
-                                    )}
-                                    <button
-                                        onClick={sendWhatsAppSummary}
-                                        disabled={services.length === 0}
-                                        className="bg-gradient-to-r from-green-600 to-emerald-600 text-white px-4 py-2 rounded-xl font-semibold hover:from-green-700 hover:to-emerald-700 transition-all shadow-lg disabled:opacity-50 text-sm"
-                                    >
-                                        📊 Share Summary
+                <div style={{minHeight: '100vh', padding: '20px'}}>
+                    {/* Header */}
+                    <header className="glass-panel fade-in" style={{padding: '20px', marginBottom: '30px', position: 'relative'}}>
+                        <div className="corner-bracket corner-tl"></div>
+                        <div className="corner-bracket corner-tr"></div>
+                        <div className="corner-bracket corner-bl"></div>
+                        <div className="corner-bracket corner-br"></div>
+                        
+                        <div style={{display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '20px'}}>
+                            <div>
+                                <h1 className="jarvis-title" style={{fontSize: '28px', marginBottom: '10px'}}>
+                                    ⚡ JARVIS MOTOR SERVICE
+                                </h1>
+                                <p className="jarvis-text" style={{fontSize: '14px', opacity: 0.7}}>
+                                    <span className="status-dot status-online"></span>
+                                    SYSTEM ONLINE | DATABASE CONNECTED
+                                </p>
+                            </div>
+                            
+                            <div style={{display: 'flex', gap: '10px', flexWrap: 'wrap'}}>
+                                {!isAdmin ? (
+                                    <button onClick={() => setShowAdminLogin(true)} className="neon-button neon-button-danger">
+                                        🔐 ADMIN ACCESS
                                     </button>
-                                    <button
-                                        onClick={() => setShowForm(!showForm)}
-                                        disabled={saving}
-                                        className="bg-gradient-to-r from-blue-600 to-indigo-600 text-white px-6 py-2 rounded-xl font-semibold hover:from-blue-700 hover:to-indigo-700 transition-all shadow-lg disabled:opacity-50"
-                                    >
-                                        {showForm ? '✕ Tutup' : '+ Tambah Service'}
+                                ) : (
+                                    <button onClick={handleAdminLogout} className="neon-button">
+                                        🚪 LOGOUT
+                                    </button>
+                                )}
+                                <button onClick={() => setShowForm(!showForm)} className="neon-button neon-button-success">
+                                    {showForm ? '✕ CLOSE' : '+ ADD SERVICE'}
+                                </button>
+                            </div>
+                        </div>
+                    </header>
+
+                    {/* Admin Login Modal */}
+                    {showAdminLogin && (
+                        <div style={{
+                            position: 'fixed',
+                            top: 0,
+                            left: 0,
+                            width: '100%',
+                            height: '100%',
+                            background: 'rgba(0, 0, 0, 0.9)',
+                            backdropFilter: 'blur(5px)',
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            zIndex: 9999
+                        }}>
+                            <div className="glass-panel slide-up" style={{width: '400px', maxWidth: '90%', padding: '30px', position: 'relative'}}>
+                                <div className="corner-bracket corner-tl"></div>
+                                <div className="corner-bracket corner-tr"></div>
+                                <div className="corner-bracket corner-bl"></div>
+                                <div className="corner-bracket corner-br"></div>
+                                
+                                <h2 className="jarvis-title" style={{fontSize: '20px', marginBottom: '20px', textAlign: 'center'}}>
+                                    🔐 ADMIN AUTHENTICATION
+                                </h2>
+                                
+                                <input
+                                    type="password"
+                                    value={adminPassword}
+                                    onChange={(e) => setAdminPassword(e.target.value)}
+                                    onKeyPress={(e) => e.key === 'Enter' && handleAdminLogin()}
+                                    placeholder="Enter password..."
+                                    className="jarvis-input"
+                                    style={{width: '100%', marginBottom: '20px'}}
+                                />
+                                
+                                <div style={{display: 'flex', gap: '10px'}}>
+                                    <button onClick={handleAdminLogin} className="neon-button neon-button-success" style={{flex: 1}}>
+                                        AUTHENTICATE
+                                    </button>
+                                    <button onClick={() => setShowAdminLogin(false)} className="neon-button" style={{flex: 1}}>
+                                        CANCEL
                                     </button>
                                 </div>
                             </div>
                         </div>
+                    )}
 
-                        {/* Admin Panel - Show directly when admin logged in */}
-                        {isAdmin && (
-                            <div className="bg-gradient-to-r from-red-50 to-rose-50 border-2 border-red-200 rounded-2xl shadow-xl p-6 mb-6">
-                                <div className="flex items-center justify-between mb-4">
-                                    <h2 className="text-2xl font-bold text-red-800 flex items-center gap-2">
-                                        🔐 Admin Panel - Database Management
-                                    </h2>
-                                    <div className="flex gap-2">
-                                        <button
-                                            onClick={exportData}
-                                            className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg font-semibold transition-all text-sm"
-                                        >
-                                            💾 Backup JSON
-                                        </button>
-                                        <button
-                                            onClick={deleteAllData}
-                                            className="bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded-lg font-semibold transition-all text-sm"
-                                        >
-                                            🗑️ Hapus Semua
-                                        </button>
-                                    </div>
-                                </div>
-
-                                <div className="bg-white p-4 rounded-lg mb-4">
-                                    <h3 className="font-bold text-gray-800 mb-2">📊 Statistik Database</h3>
-                                    <div className="grid grid-cols-3 gap-4">
-                                        <div>
-                                            <p className="text-gray-600 text-sm">Total Records</p>
-                                            <p className="text-2xl font-bold text-blue-600">{services.length}</p>
-                                        </div>
-                                        <div>
-                                            <p className="text-gray-600 text-sm">Unique Motors</p>
-                                            <p className="text-2xl font-bold text-green-600">
-                                                {new Set(services.map(s => `${s.merkMotor} ${s.jenisMotor}`)).size}
-                                            </p>
-                                        </div>
-                                        <div>
-                                            <p className="text-gray-600 text-sm">Database</p>
-                                            <p className="text-lg font-bold text-purple-600">Firebase RT</p>
-                                        </div>
-                                    </div>
-                                </div>
-
-                                {/* Admin Table CRUD */}
-                                <div className="bg-white rounded-lg overflow-hidden">
-                                    <div className="overflow-x-auto">
-                                        <table className="w-full text-sm">
-                                            <thead className="bg-gray-100 border-b-2 border-gray-200">
-                                                <tr>
-                                                    <th className="px-4 py-3 text-left font-semibold text-gray-700">Tanggal</th>
-                                                    <th className="px-4 py-3 text-left font-semibold text-gray-700">Jenis Service</th>
-                                                    <th className="px-4 py-3 text-left font-semibold text-gray-700">Motor</th>
-                                                    <th className="px-4 py-3 text-left font-semibold text-gray-700">KM Saat Ganti</th>
-                                                    <th className="px-4 py-3 text-left font-semibold text-gray-700">KM Next</th>
-                                                    <th className="px-4 py-3 text-left font-semibold text-gray-700">Catatan</th>
-                                                    <th className="px-4 py-3 text-center font-semibold text-gray-700">Actions</th>
-                                                </tr>
-                                            </thead>
-                                            <tbody>
-                                                {sortedServices.length === 0 ? (
-                                                    <tr>
-                                                        <td colSpan="7" className="px-4 py-8 text-center text-gray-500">
-                                                            Belum ada data
-                                                        </td>
-                                                    </tr>
-                                                ) : (
-                                                    sortedServices.map((service, index) => (
-                                                        <tr 
-                                                            key={service.id}
-                                                            className={`border-b border-gray-100 hover:bg-gray-50 ${
-                                                                index % 2 === 0 ? 'bg-white' : 'bg-gray-50'
-                                                            }`}
-                                                        >
-                                                            <td className="px-4 py-3 text-gray-800">
-                                                                {new Date(service.tanggalService).toLocaleDateString('id-ID', {
-                                                                    day: '2-digit',
-                                                                    month: 'short',
-                                                                    year: 'numeric'
-                                                                })}
-                                                            </td>
-                                                            <td className="px-4 py-3">
-                                                                <span className="text-gray-800 font-medium">
-                                                                    {getServiceIcon(service.jenisService)} {service.jenisService}
-                                                                </span>
-                                                            </td>
-                                                            <td className="px-4 py-3 text-gray-800">
-                                                                <div className="font-medium">{service.merkMotor}</div>
-                                                                <div className="text-xs text-gray-500">{service.jenisMotor}</div>
-                                                            </td>
-                                                            <td className="px-4 py-3 text-gray-800 font-medium">
-                                                                {service.kmSaatGanti.toLocaleString('id-ID')} km
-                                                            </td>
-                                                            <td className="px-4 py-3 text-orange-600 font-bold">
-                                                                {service.kmNextService.toLocaleString('id-ID')} km
-                                                            </td>
-                                                            <td className="px-4 py-3 text-gray-600 text-xs max-w-xs truncate">
-                                                                {service.catatan || '-'}
-                                                            </td>
-                                                            <td className="px-4 py-3">
-                                                                <div className="flex gap-2 justify-center">
-                                                                    <button
-                                                                        onClick={() => handleEdit(service)}
-                                                                        className="p-1.5 text-blue-600 hover:bg-blue-100 rounded transition-all"
-                                                                        title="Edit"
-                                                                    >
-                                                                        ✏️
-                                                                    </button>
-                                                                    <button
-                                                                        onClick={() => handleDelete(service.id)}
-                                                                        className="p-1.5 text-red-600 hover:bg-red-100 rounded transition-all"
-                                                                        title="Hapus"
-                                                                    >
-                                                                        🗑️
-                                                                    </button>
-                                                                </div>
-                                                            </td>
-                                                        </tr>
-                                                    ))
-                                                )}
-                                            </tbody>
-                                        </table>
-                                    </div>
-                                </div>
-
-                                <div className="mt-4 bg-yellow-50 border border-yellow-200 p-4 rounded-lg">
-                                    <p className="text-sm text-yellow-800">
-                                        <strong>⚠️ Info:</strong> Admin melihat SEMUA data historis. User biasa hanya melihat service terbaru per jenis & motor. Password admin ada di baris 54 file HTML.
-                                    </p>
-                                </div>
-                            </div>
-                        )}
-
-                        {/* Admin Login Modal */}
-                        {showAdminLogin && !isAdmin && (
-                            <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-                                <div className="bg-white rounded-2xl shadow-2xl max-w-md w-full p-6">
-                                    <h3 className="text-2xl font-bold text-gray-800 mb-4 flex items-center gap-2">
-                                        🔐 Admin Login
-                                    </h3>
-                                    
-                                    <div className="mb-6">
-                                        <label className="block text-sm font-semibold text-gray-700 mb-2">
-                                            Password Admin
+                    {/* Form */}
+                    {showForm && (
+                        <div className="glass-panel slide-up" style={{padding: '30px', marginBottom: '30px', position: 'relative'}}>
+                            <div className="corner-bracket corner-tl"></div>
+                            <div className="corner-bracket corner-tr"></div>
+                            <div className="corner-bracket corner-bl"></div>
+                            <div className="corner-bracket corner-br"></div>
+                            
+                            <h2 className="jarvis-title" style={{fontSize: '20px', marginBottom: '20px'}}>
+                                {editingId ? '✏️ UPDATE SERVICE DATA' : '📝 NEW SERVICE ENTRY'}
+                            </h2>
+                            
+                            <form onSubmit={handleSubmit}>
+                                <div style={{display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(250px, 1fr))', gap: '15px'}}>
+                                    <div>
+                                        <label className="jarvis-text" style={{display: 'block', marginBottom: '8px', fontSize: '14px'}}>
+                                            JENIS SERVICE *
                                         </label>
-                                        <input
-                                            type="password"
-                                            value={adminPassword}
-                                            onChange={(e) => setAdminPassword(e.target.value)}
-                                            onKeyPress={(e) => e.key === 'Enter' && handleAdminLogin()}
-                                            placeholder="Masukkan password admin"
-                                            className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-transparent"
-                                        />
-                                        {adminError && (
-                                            <p className="text-red-600 text-sm mt-2">{adminError}</p>
-                                        )}
-                                    </div>
-
-                                    <div className="flex gap-3">
-                                        <button
-                                            onClick={handleAdminLogin}
-                                            className="flex-1 bg-gradient-to-r from-red-600 to-rose-600 text-white px-6 py-3 rounded-lg font-semibold hover:from-red-700 hover:to-rose-700 transition-all shadow-md"
+                                        <select
+                                            value={formData.jenisService}
+                                            onChange={(e) => setFormData({...formData, jenisService: e.target.value})}
+                                            required
+                                            className="jarvis-input"
+                                            style={{width: '100%'}}
                                         >
-                                            🔓 Login
-                                        </button>
-                                        <button
-                                            onClick={() => {
-                                                setShowAdminLogin(false);
-                                                setAdminPassword('');
-                                                setAdminError('');
-                                            }}
-                                            className="px-6 py-3 border-2 border-gray-300 text-gray-700 rounded-lg font-semibold hover:bg-gray-50 transition-all"
-                                        >
-                                            Batal
-                                        </button>
+                                            <option value="">Select...</option>
+                                            {SERVICE_TYPES.map(s => (
+                                                <option key={s.name} value={s.name}>{s.icon} {s.name}</option>
+                                            ))}
+                                        </select>
                                     </div>
-                                </div>
-                            </div>
-                        )}
-
-                        {/* Form (same as before) */}
-                        {showForm && (
-                            <div className="bg-white rounded-2xl shadow-xl p-6 mb-6">
-                                <h2 className="text-2xl font-bold text-gray-800 mb-6">
-                                    {editingId ? '✏️ Edit Service' : '📝 Tambah Service Baru'}
-                                </h2>
-                                <form onSubmit={handleSubmit} className="space-y-4">
-                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                        <div>
-                                            <label className="block text-sm font-semibold text-gray-700 mb-2">
-                                                Jenis Service *
-                                            </label>
-                                            <select
-                                                name="jenisService"
-                                                value={formData.jenisService}
-                                                onChange={handleInputChange}
-                                                required
-                                                disabled={saving}
-                                                className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent disabled:bg-gray-100"
-                                            >
-                                                <option value="">Pilih Jenis Service</option>
-                                                {SERVICE_TYPES.map(service => (
-                                                    <option key={service.name} value={service.name}>
-                                                        {service.icon} {service.name}
-                                                    </option>
-                                                ))}
-                                            </select>
-                                        </div>
-
-                                        <div>
-                                            <label className="block text-sm font-semibold text-gray-700 mb-2">
-                                                Merk Motor *
-                                            </label>
-                                            <select
-                                                name="merkMotor"
-                                                value={formData.merkMotor}
-                                                onChange={handleInputChange}
-                                                required
-                                                disabled={saving}
-                                                className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent disabled:bg-gray-100"
-                                            >
-                                                <option value="">Pilih Merk</option>
-                                                {MOTOR_BRANDS.map(brand => (
-                                                    <option key={brand} value={brand}>{brand}</option>
-                                                ))}
-                                            </select>
-                                        </div>
-
-                                        <div>
-                                            <label className="block text-sm font-semibold text-gray-700 mb-2">
-                                                Jenis Motor *
-                                            </label>
-                                            <input
-                                                type="text"
-                                                name="jenisMotor"
-                                                value={formData.jenisMotor}
-                                                onChange={handleInputChange}
-                                                placeholder="Contoh: Vario 160, NMAX, Beat"
-                                                required
-                                                disabled={saving}
-                                                className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent disabled:bg-gray-100"
-                                            />
-                                        </div>
-
-                                        <div>
-                                            <label className="block text-sm font-semibold text-gray-700 mb-2">
-                                                Tanggal Service *
-                                            </label>
-                                            <input
-                                                type="date"
-                                                name="tanggalService"
-                                                value={formData.tanggalService}
-                                                onChange={handleInputChange}
-                                                required
-                                                disabled={saving}
-                                                className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent disabled:bg-gray-100"
-                                            />
-                                        </div>
-
-                                        <div>
-                                            <label className="block text-sm font-semibold text-gray-700 mb-2">
-                                                KM Saat Ganti *
-                                            </label>
-                                            <input
-                                                type="number"
-                                                name="kmSaatGanti"
-                                                value={formData.kmSaatGanti}
-                                                onChange={handleInputChange}
-                                                placeholder="Contoh: 5000"
-                                                required
-                                                disabled={saving}
-                                                className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent disabled:bg-gray-100"
-                                            />
-                                        </div>
-
-                                        <div>
-                                            <label className="block text-sm font-semibold text-gray-700 mb-2">
-                                                Catatan (Opsional)
-                                            </label>
-                                            <input
-                                                type="text"
-                                                name="catatan"
-                                                value={formData.catatan}
-                                                onChange={handleInputChange}
-                                                placeholder="Catatan tambahan..."
-                                                disabled={saving}
-                                                className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent disabled:bg-gray-100"
-                                            />
-                                        </div>
-                                    </div>
-
-                                    <div className="flex gap-3 pt-4">
-                                        <button
-                                            type="submit"
-                                            disabled={saving}
-                                            className="flex-1 bg-gradient-to-r from-green-600 to-emerald-600 text-white px-6 py-3 rounded-lg font-semibold hover:from-green-700 hover:to-emerald-700 transition-all shadow-md disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
-                                        >
-                                            {saving ? (
-                                                <>
-                                                    <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
-                                                    Menyimpan...
-                                                </>
-                                            ) : (
-                                                <>{editingId ? '💾 Update Service' : '✅ Simpan Service'}</>
-                                            )}
-                                        </button>
-                                        <button
-                                            type="button"
-                                            onClick={resetForm}
-                                            disabled={saving}
-                                            className="px-6 py-3 border-2 border-gray-300 text-gray-700 rounded-lg font-semibold hover:bg-gray-50 transition-all disabled:opacity-50"
-                                        >
-                                            Batal
-                                        </button>
-                                    </div>
-                                </form>
-                            </div>
-                        )}
-
-                        {/* Services List - Only for non-admin users */}
-                        {!isAdmin && (
-                            <div className="bg-white rounded-2xl shadow-xl p-6">
-                                <h2 className="text-2xl font-bold text-gray-800 mb-6 flex items-center gap-2">
-                                    📋 Riwayat Service ({isAdmin ? services.length : displayServices.length})
-                                    {!isAdmin && services.length > displayServices.length && (
-                                        <span className="text-sm text-gray-500 font-normal">
-                                            (Menampilkan service terbaru per motor)
-                                        </span>
-                                    )}
-                                </h2>
-
-                                {displayServices.length === 0 ? (
-                                    <div className="text-center py-16">
-                                        <div className="text-6xl mb-4">🏍️</div>
-                                        <p className="text-gray-500 text-lg">Belum ada data service</p>
-                                        <p className="text-gray-400 mt-2">Klik tombol "Tambah Service" untuk memulai</p>
-                                    </div>
-                                ) : (
-                                    <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-                                        {displayServices.map(service => {
-                                            const isOverdue = isServiceOverdue(service.tanggalService);
-                                            
-                                            return (
-                                                <div 
-                                                    key={service.id}
-                                                    className={`border-2 rounded-xl p-5 hover:shadow-lg transition-all ${
-                                                        isOverdue 
-                                                            ? 'bg-red-50 border-red-300 hover:border-red-400' 
-                                                            : 'border-gray-200 hover:border-blue-300'
-                                                    }`}
-                                                >
-                                                    {isOverdue && (
-                                                        <div className="bg-red-500 text-white px-3 py-1 rounded-lg mb-3 text-sm font-semibold flex items-center gap-2">
-                                                            ⚠️ Sudah lewat 2 bulan! Segera service!
-                                                        </div>
-                                                    )}
-                                                    
-                                                    <div className="flex items-start justify-between mb-4">
-                                                        <div className="flex items-center gap-3">
-                                                            <span className="text-3xl">{getServiceIcon(service.jenisService)}</span>
-                                                            <div>
-                                                                <h3 className="font-bold text-lg text-gray-800">
-                                                                    {service.jenisService}
-                                                                </h3>
-                                                                <p className="text-sm text-gray-600">
-                                                                    {service.merkMotor} {service.jenisMotor}
-                                                                </p>
-                                                            </div>
-                                                        </div>
-                                                        <div className="flex gap-2">
-                                                            <button
-                                                                onClick={() => handleEdit(service)}
-                                                                className="p-2 text-blue-600 hover:bg-blue-50 rounded-lg transition-all"
-                                                                title="Edit"
-                                                            >
-                                                                ✏️
-                                                            </button>
-                                                            <button
-                                                                onClick={() => handleDelete(service.id)}
-                                                                className="p-2 text-red-600 hover:bg-red-50 rounded-lg transition-all"
-                                                                title="Hapus"
-                                                            >
-                                                                🗑️
-                                                            </button>
-                                                        </div>
-                                                    </div>
-
-                                                    <div className="grid grid-cols-2 gap-3 text-sm">
-                                                        <div className={`p-3 rounded-lg ${isOverdue ? 'bg-red-100' : 'bg-blue-50'}`}>
-                                                            <p className="text-gray-600 mb-1">📅 Tanggal Service</p>
-                                                            <p className={`font-semibold ${isOverdue ? 'text-red-800' : 'text-gray-800'}`}>
-                                                                {new Date(service.tanggalService).toLocaleDateString('id-ID', {
-                                                                    day: 'numeric',
-                                                                    month: 'long',
-                                                                    year: 'numeric'
-                                                                })}
-                                                            </p>
-                                                        </div>
-                                                        <div className="bg-green-50 p-3 rounded-lg">
-                                                            <p className="text-gray-600 mb-1">📊 KM Saat Ganti</p>
-                                                            <p className="font-semibold text-gray-800">
-                                                                {service.kmSaatGanti.toLocaleString('id-ID')} km
-                                                            </p>
-                                                        </div>
-                                                        <div className="bg-yellow-50 p-3 rounded-lg col-span-2">
-                                                            <p className="text-gray-600 mb-1">🎯 Service Berikutnya</p>
-                                                            <p className="font-bold text-lg text-orange-600">
-                                                                {service.kmNextService.toLocaleString('id-ID')} km
-                                                            </p>
-                                                        </div>
-                                                    </div>
-
-                                                    <div className="mt-4">
-                                                        <button
-                                                            onClick={() => openWhatsAppModal(service)}
-                                                            className={`w-full text-white px-4 py-3 rounded-lg font-semibold transition-all shadow-md hover:shadow-lg flex items-center justify-center gap-2 ${
-                                                                isOverdue
-                                                                    ? 'bg-gradient-to-r from-red-500 to-red-600 hover:from-red-600 hover:to-red-700'
-                                                                    : 'bg-gradient-to-r from-green-500 to-green-600 hover:from-green-600 hover:to-green-700'
-                                                            }`}
-                                                        >
-                                                            <span className="text-xl">📱</span>
-                                                            Kirim Reminder via WhatsApp
-                                                        </button>
-                                                    </div>
-
-                                                    {service.catatan && (
-                                                        <div className="mt-3 p-3 bg-gray-50 rounded-lg">
-                                                            <p className="text-xs text-gray-600 mb-1">💬 Catatan:</p>
-                                                            <p className="text-sm text-gray-800">{service.catatan}</p>
-                                                        </div>
-                                                    )}
-                                                </div>
-                                            );
-                                        })}
-                                    </div>
-                                )}
-                            </div>
-                        )}
-
-                        {/* WhatsApp Modal */}
-                        {showWhatsAppModal && selectedService && (
-                            <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-                                <div className="bg-white rounded-2xl shadow-2xl max-w-md w-full p-6">
-                                    <h3 className="text-2xl font-bold text-gray-800 mb-4 flex items-center gap-2">
-                                        📱 Kirim ke WhatsApp
-                                    </h3>
                                     
-                                    <div className="mb-6">
-                                        <label className="block text-sm font-semibold text-gray-700 mb-2">
-                                            Nomor WhatsApp (Opsional)
+                                    <div>
+                                        <label className="jarvis-text" style={{display: 'block', marginBottom: '8px', fontSize: '14px'}}>
+                                            MERK MOTOR *
+                                        </label>
+                                        <select
+                                            value={formData.merkMotor}
+                                            onChange={(e) => setFormData({...formData, merkMotor: e.target.value})}
+                                            required
+                                            className="jarvis-input"
+                                            style={{width: '100%'}}
+                                        >
+                                            <option value="">Select...</option>
+                                            {MOTOR_BRANDS.map(b => (
+                                                <option key={b} value={b}>{b}</option>
+                                            ))}
+                                        </select>
+                                    </div>
+                                    
+                                    <div>
+                                        <label className="jarvis-text" style={{display: 'block', marginBottom: '8px', fontSize: '14px'}}>
+                                            JENIS MOTOR *
                                         </label>
                                         <input
                                             type="text"
-                                            value={phoneNumber}
-                                            onChange={(e) => setPhoneNumber(e.target.value)}
-                                            placeholder="Contoh: 08123456789 atau 628123456789"
-                                            className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent"
+                                            value={formData.jenisMotor}
+                                            onChange={(e) => setFormData({...formData, jenisMotor: e.target.value})}
+                                            placeholder="Vario 160, NMAX..."
+                                            required
+                                            className="jarvis-input"
+                                            style={{width: '100%'}}
                                         />
-                                        <p className="text-xs text-gray-500 mt-2">
-                                            Kosongkan untuk memilih kontak dari WhatsApp
-                                        </p>
                                     </div>
-
-                                    <div className="bg-gray-50 p-4 rounded-lg mb-6">
-                                        <p className="text-sm text-gray-600 mb-2 font-semibold">Preview Pesan:</p>
-                                        <div className="text-sm text-gray-700 whitespace-pre-line">
-                                            🏍️ <strong>REMINDER SERVICE MOTOR</strong>
-                                            <br/><br/>
-                                            📋 Jenis Service: {selectedService.jenisService}
-                                            <br/>
-                                            🏍️ Motor: {selectedService.merkMotor} {selectedService.jenisMotor}
-                                            <br/>
-                                            📅 Service Terakhir: {new Date(selectedService.tanggalService).toLocaleDateString('id-ID')}
-                                            <br/>
-                                            📊 KM Terakhir: {selectedService.kmSaatGanti.toLocaleString('id-ID')} km
-                                            <br/>
-                                            🎯 Service Berikutnya: {selectedService.kmNextService.toLocaleString('id-ID')} km
+                                    
+                                    <div>
+                                        <label className="jarvis-text" style={{display: 'block', marginBottom: '8px', fontSize: '14px'}}>
+                                            TANGGAL SERVICE *
+                                        </label>
+                                        <div style={{position: 'relative'}}>
+                                            <input
+                                                id="tanggalServiceInput"
+                                                type="text"
+                                                value={formData.tanggalService}
+                                                onChange={(e) => setFormData({...formData, tanggalService: e.target.value})}
+                                                placeholder="Pilih tanggal..."
+                                                required
+                                                className="jarvis-input"
+                                                style={{width: '100%', paddingRight: '40px'}}
+                                            />
+                                            <span style={{
+                                                position: 'absolute',
+                                                right: '12px',
+                                                top: '50%',
+                                                transform: 'translateY(-50%)',
+                                                color: '#00e5ff',
+                                                fontSize: '18px',
+                                                pointerEvents: 'none'
+                                            }}>📅</span>
                                         </div>
                                     </div>
-
-                                    <div className="flex gap-3">
-                                        <button
-                                            onClick={sendWhatsAppReminder}
-                                            className="flex-1 bg-gradient-to-r from-green-600 to-emerald-600 text-white px-6 py-3 rounded-lg font-semibold hover:from-green-700 hover:to-emerald-700 transition-all shadow-md"
-                                        >
-                                            📤 Kirim Sekarang
-                                        </button>
-                                        <button
-                                            onClick={() => {
-                                                setShowWhatsAppModal(false);
-                                                setPhoneNumber('');
-                                            }}
-                                            className="px-6 py-3 border-2 border-gray-300 text-gray-700 rounded-lg font-semibold hover:bg-gray-50 transition-all"
-                                        >
-                                            Batal
-                                        </button>
+                                    
+                                    <div>
+                                        <label className="jarvis-text" style={{display: 'block', marginBottom: '8px', fontSize: '14px'}}>
+                                            KM SAAT GANTI *
+                                        </label>
+                                        <input
+                                            type="number"
+                                            value={formData.kmSaatGanti}
+                                            onChange={(e) => setFormData({...formData, kmSaatGanti: e.target.value})}
+                                            placeholder="5000"
+                                            required
+                                            className="jarvis-input"
+                                            style={{width: '100%'}}
+                                        />
+                                    </div>
+                                    
+                                    <div>
+                                        <label className="jarvis-text" style={{display: 'block', marginBottom: '8px', fontSize: '14px'}}>
+                                            CATATAN
+                                        </label>
+                                        <input
+                                            type="text"
+                                            value={formData.catatan}
+                                            onChange={(e) => setFormData({...formData, catatan: e.target.value})}
+                                            placeholder="Notes..."
+                                            className="jarvis-input"
+                                            style={{width: '100%'}}
+                                        />
                                     </div>
                                 </div>
-                            </div>
-                        )}
-
-                        {/* Footer */}
-                        <div className="text-center mt-8 text-gray-600">
-                            <p className="text-sm">🌐 Data tersimpan di Firebase Realtime Database</p>
-                            <p className="text-xs mt-1 text-gray-500">📱 Notifikasi WhatsApp terintegrasi • 🔐 Admin Protected</p>
+                                
+                                <div style={{display: 'flex', gap: '10px', marginTop: '20px'}}>
+                                    <button type="submit" disabled={saving} className="neon-button neon-button-success" style={{flex: 1}}>
+                                        {saving ? 'SAVING...' : (editingId ? 'UPDATE' : 'SAVE')}
+                                    </button>
+                                    <button type="button" onClick={() => {setShowForm(false); setEditingId(null);}} className="neon-button">
+                                        CANCEL
+                                    </button>
+                                </div>
+                            </form>
                         </div>
-                    </div>
+                    )}
+
+                    {/* Admin Table */}
+                    {isAdmin && (
+                        <div className="glass-panel fade-in" style={{padding: '30px', marginBottom: '30px', position: 'relative'}}>
+                            <div className="corner-bracket corner-tl"></div>
+                            <div className="corner-bracket corner-tr"></div>
+                            <div className="corner-bracket corner-bl"></div>
+                            <div className="corner-bracket corner-br"></div>
+                            
+                            <div style={{display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px', flexWrap: 'wrap', gap: '10px'}}>
+                                <h2 className="jarvis-title" style={{fontSize: '20px'}}>
+                                    🗄️ DATABASE MANAGEMENT
+                                </h2>
+                                <div style={{display: 'flex', gap: '10px'}}>
+                                    <button onClick={exportData} className="neon-button">💾 BACKUP</button>
+                                    <button onClick={deleteAllData} className="neon-button neon-button-danger">🗑️ DELETE ALL</button>
+                                </div>
+                            </div>
+                            
+                            <div style={{overflowX: 'auto'}}>
+                                <table className="jarvis-table">
+                                    <thead>
+                                        <tr>
+                                            <th>DATE</th>
+                                            <th>SERVICE</th>
+                                            <th>MOTOR</th>
+                                            <th>KM CURRENT</th>
+                                            <th>KM NEXT</th>
+                                            <th>NOTES</th>
+                                            <th>ACTIONS</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        {sortedServices.map(s => (
+                                            <tr key={s.id}>
+                                                <td>{new Date(s.tanggalService).toLocaleDateString('id-ID')}</td>
+                                                <td>{s.jenisService}</td>
+                                                <td>{s.merkMotor} {s.jenisMotor}</td>
+                                                <td>{s.kmSaatGanti.toLocaleString('id-ID')} km</td>
+                                                <td style={{color: '#ff9500'}}>{s.kmNextService.toLocaleString('id-ID')} km</td>
+                                                <td style={{maxWidth: '200px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap'}}>
+                                                    {s.catatan || '-'}
+                                                </td>
+                                                <td>
+                                                    <button onClick={() => handleEdit(s)} className="neon-button" style={{padding: '6px 12px', marginRight: '5px'}}>
+                                                        ✏️
+                                                    </button>
+                                                    <button onClick={() => handleDelete(s.id)} className="neon-button neon-button-danger" style={{padding: '6px 12px'}}>
+                                                        🗑️
+                                                    </button>
+                                                </td>
+                                            </tr>
+                                        ))}
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    )}
+
+                    {/* Services Grid for Users */}
+                    {!isAdmin && (
+                        <div>
+                            <h2 className="jarvis-title" style={{fontSize: '20px', marginBottom: '20px'}}>
+                                📊 SERVICE RECORDS ({displayServices.length})
+                            </h2>
+                            
+                            {displayServices.length === 0 ? (
+                                <div className="glass-panel" style={{padding: '60px', textAlign: 'center'}}>
+                                    <p className="jarvis-text" style={{fontSize: '18px', opacity: 0.5}}>
+                                        NO SERVICE RECORDS FOUND
+                                    </p>
+                                </div>
+                            ) : (
+                                <div style={{display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(300px, 1fr))', gap: '20px'}}>
+                                    {displayServices.map(s => {
+                                        const overdue = isServiceOverdue(s.tanggalService);
+                                        return (
+                                            <div key={s.id} className={`glass-panel slide-up ${overdue ? 'data-box-red' : ''}`} style={{padding: '20px', position: 'relative'}}>
+                                                <div className="corner-bracket corner-tl"></div>
+                                                <div className="corner-bracket corner-tr"></div>
+                                                <div className="corner-bracket corner-bl"></div>
+                                                <div className="corner-bracket corner-br"></div>
+                                                
+                                                {overdue && (
+                                                    <div style={{
+                                                        background: 'rgba(255, 8, 68, 0.2)',
+                                                        border: '1px solid #ff0844',
+                                                        padding: '8px',
+                                                        marginBottom: '15px',
+                                                        borderRadius: '4px',
+                                                        textAlign: 'center'
+                                                    }}>
+                                                        <span className="jarvis-text" style={{color: '#ff0844', fontSize: '12px', fontWeight: 700}}>
+                                                            ⚠️ OVERDUE - SERVICE REQUIRED
+                                                        </span>
+                                                    </div>
+                                                )}
+                                                
+                                                <div style={{marginBottom: '15px'}}>
+                                                    <h3 className="jarvis-title" style={{fontSize: '16px', marginBottom: '5px'}}>
+                                                        {s.jenisService}
+                                                    </h3>
+                                                    <p className="jarvis-text" style={{fontSize: '14px', opacity: 0.7}}>
+                                                        {s.merkMotor} {s.jenisMotor}
+                                                    </p>
+                                                </div>
+                                                
+                                                <div className="data-box" style={{marginBottom: '10px'}}>
+                                                    <p className="jarvis-text" style={{fontSize: '12px', opacity: 0.7}}>DATE</p>
+                                                    <p className="jarvis-text" style={{fontSize: '14px', fontWeight: 600}}>
+                                                        {new Date(s.tanggalService).toLocaleDateString('id-ID', {
+                                                            day: 'numeric',
+                                                            month: 'long',
+                                                            year: 'numeric'
+                                                        })}
+                                                    </p>
+                                                </div>
+                                                
+                                                <div className="data-box data-box-green" style={{marginBottom: '10px'}}>
+                                                    <p className="jarvis-text" style={{fontSize: '12px', opacity: 0.7}}>CURRENT KM</p>
+                                                    <p className="jarvis-text" style={{fontSize: '16px', fontWeight: 700, color: '#00ff88'}}>
+                                                        {s.kmSaatGanti.toLocaleString('id-ID')} km
+                                                    </p>
+                                                </div>
+                                                
+                                                <div className="data-box data-box-orange">
+                                                    <p className="jarvis-text" style={{fontSize: '12px', opacity: 0.7}}>NEXT SERVICE</p>
+                                                    <p className="jarvis-text" style={{fontSize: '18px', fontWeight: 700, color: '#ff9500'}}>
+                                                        {s.kmNextService.toLocaleString('id-ID')} km
+                                                    </p>
+                                                </div>
+                                                
+                                                {s.catatan && (
+                                                    <div style={{marginTop: '15px', padding: '10px', background: 'rgba(0, 229, 255, 0.05)', borderLeft: '2px solid #00e5ff'}}>
+                                                        <p className="jarvis-text" style={{fontSize: '12px', opacity: 0.7}}>NOTES</p>
+                                                        <p className="jarvis-text" style={{fontSize: '14px'}}>{s.catatan}</p>
+                                                    </div>
+                                                )}
+                                                
+                                                <div style={{marginTop: '15px', display: 'flex', gap: '10px'}}>
+                                                    <button onClick={() => handleEdit(s)} className="neon-button" style={{flex: 1, padding: '8px'}}>
+                                                        EDIT
+                                                    </button>
+                                                    <button onClick={() => handleDelete(s.id)} className="neon-button neon-button-danger" style={{flex: 1, padding: '8px'}}>
+                                                        DELETE
+                                                    </button>
+                                                </div>
+                                            </div>
+                                        );
+                                    })}
+                                </div>
+                            )}
+                        </div>
+                    )}
+
+                    {/* Footer */}
+                    <footer style={{marginTop: '40px', padding: '20px', textAlign: 'center', borderTop: '1px solid rgba(0, 229, 255, 0.2)'}}>
+                        <p className="jarvis-text" style={{fontSize: '12px', opacity: 0.5}}>
+                            <span className="status-dot status-online"></span>
+                            JARVIS MOTOR SERVICE ENGINEERING SYSTEM | POWERED BY FIREBASE
+                        </p>
+                    </footer>
                 </div>
             );
         }
 
-        ReactDOM.render(<ServiceMotorApp />, document.getElementById('root'));
+        ReactDOM.render(<App />, document.getElementById('root'));
     </script>
 </body>
 </html>
