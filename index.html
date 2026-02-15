@@ -1283,14 +1283,7 @@
                                                     </div>
                                                 )}
                                                 
-                                                <div style={{marginTop: '15px', display: 'flex', gap: '10px'}}>
-                                                    <button onClick={() => handleEdit(s)} className="neon-button" style={{flex: 1, padding: '8px'}}>
-                                                        EDIT
-                                                    </button>
-                                                    <button onClick={() => handleDelete(s.id)} className="neon-button neon-button-danger" style={{flex: 1, padding: '8px'}}>
-                                                        DELETE
-                                                    </button>
-                                                </div>
+                                                
                                             </div>
                                         );
                                     })}
@@ -1309,7 +1302,6 @@
                 </div>
             );
         }
-
         ReactDOM.render(<App />, document.getElementById('root'));
     </script>
 </body>
