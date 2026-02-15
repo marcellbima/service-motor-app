@@ -1,0 +1,586 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Service Motor App - Online Database</title>
+    <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+    <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+    <script src="https://cdn.tailwindcss.com"></script>
+    
+    <!-- Firebase -->
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-database-compat.js"></script>
+    
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+        .loading-spinner {
+            border: 3px solid #f3f3f3;
+            border-top: 3px solid #3498db;
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            animation: spin 1s linear infinite;
+        }
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+    </style>
+</head>
+<body class="bg-gray-50">
+    <div id="root"></div>
+
+    <script type="text/babel">
+        const { useState, useEffect } = React;
+
+        // KONFIGURASI FIREBASE
+        // Ganti dengan konfigurasi Firebase Anda sendiri
+        const firebaseConfig = {
+            apiKey: "AIzaSyBiS743krcarz8ojSb7i54Yrni6N4E5gE8",
+            authDomain: "service-motor-app.firebaseapp.com",
+            databaseURL: "https://service-motor-app-default-rtdb.asia-southeast1.firebasedatabase.app",
+            projectId: "service-motor-app",
+            storageBucket: "service-motor-app.firebasestorage.app",
+            messagingSenderId: "303245984126",
+            appId: "1:303245984126:web:2ef9e08baf6ebed15c332f",
+            measurementId: "G-LJCGMSNDJG"
+        };
+
+        const SERVICE_TYPES = [
+            { name: 'Ganti Oli Mesin', intervalKm: 2000, icon: '🛢️' },
+            { name: 'Service CVT', intervalKm: 5000, icon: '⚙️' },
+            { name: 'Ganti Belt CVT', intervalKm: 15000, icon: '🔧' },
+            { name: 'Ganti Oli Gardan', intervalKm: 8000, icon: '🔩' },
+            { name: 'Ganti Kampas Rem', intervalKm: 10000, icon: '🛑' },
+            { name: 'Ganti Busi', intervalKm: 6000, icon: '⚡' },
+            { name: 'Service Berkala', intervalKm: 4000, icon: '🔍' },
+            { name: 'Ganti Filter Udara', intervalKm: 8000, icon: '💨' },
+        ];
+
+        const MOTOR_BRANDS = [
+            'Honda', 'Yamaha', 'Suzuki', 'Kawasaki', 'TVS', 
+            'Vespa', 'Royal Enfield', 'Lainnya'
+        ];
+
+        function ServiceMotorApp() {
+            const [services, setServices] = useState([]);
+            const [showForm, setShowForm] = useState(false);
+            const [editingId, setEditingId] = useState(null);
+            const [loading, setLoading] = useState(true);
+            const [saving, setSaving] = useState(false);
+            const [firebaseInitialized, setFirebaseInitialized] = useState(false);
+            const [error, setError] = useState('');
+            const [formData, setFormData] = useState({
+                jenisService: '',
+                jenisMotor: '',
+                merkMotor: '',
+                tanggalService: '',
+                kmSaatGanti: '',
+                catatan: ''
+            });
+
+            let database = null;
+
+            // Initialize Firebase
+            useEffect(() => {
+                try {
+                    // Check if firebase config is set
+                    if (firebaseConfig.apiKey === "YOUR_API_KEY") {
+                        setError('⚠️ Konfigurasi Firebase belum diatur. Silakan lihat panduan setup di bawah.');
+                        setLoading(false);
+                        return;
+                    }
+
+                    if (!firebase.apps.length) {
+                        firebase.initializeApp(firebaseConfig);
+                    }
+                    database = firebase.database();
+                    setFirebaseInitialized(true);
+                    loadServices();
+                } catch (err) {
+                    setError('❌ Error menginisialisasi Firebase: ' + err.message);
+                    setLoading(false);
+                }
+            }, []);
+
+            const loadServices = () => {
+                const servicesRef = firebase.database().ref('services');
+                
+                servicesRef.on('value', (snapshot) => {
+                    const data = snapshot.val();
+                    if (data) {
+                        const servicesArray = Object.keys(data).map(key => ({
+                            id: key,
+                            ...data[key]
+                        }));
+                        setServices(servicesArray);
+                    } else {
+                        setServices([]);
+                    }
+                    setLoading(false);
+                });
+
+                // Cleanup listener
+                return () => servicesRef.off();
+            };
+
+            const handleInputChange = (e) => {
+                const { name, value } = e.target;
+                setFormData(prev => ({
+                    ...prev,
+                    [name]: value
+                }));
+            };
+
+            const calculateNextService = (currentKm, serviceType) => {
+                const service = SERVICE_TYPES.find(s => s.name === serviceType);
+                const interval = service ? service.intervalKm : 2000;
+                return parseInt(currentKm) + interval;
+            };
+
+            const handleSubmit = async (e) => {
+                e.preventDefault();
+                setSaving(true);
+                
+                try {
+                    const nextKm = calculateNextService(formData.kmSaatGanti, formData.jenisService);
+                    
+                    const serviceData = {
+                        ...formData,
+                        kmSaatGanti: parseInt(formData.kmSaatGanti),
+                        kmNextService: nextKm,
+                        createdAt: editingId ? 
+                            services.find(s => s.id === editingId).createdAt : 
+                            new Date().toISOString(),
+                        updatedAt: new Date().toISOString()
+                    };
+
+                    if (editingId) {
+                        // Update existing service
+                        await firebase.database().ref('services/' + editingId).update(serviceData);
+                    } else {
+                        // Add new service
+                        await firebase.database().ref('services').push(serviceData);
+                    }
+
+                    resetForm();
+                } catch (err) {
+                    alert('Error menyimpan data: ' + err.message);
+                } finally {
+                    setSaving(false);
+                }
+            };
+
+            const handleEdit = (service) => {
+                setFormData({
+                    jenisService: service.jenisService,
+                    jenisMotor: service.jenisMotor,
+                    merkMotor: service.merkMotor,
+                    tanggalService: service.tanggalService,
+                    kmSaatGanti: service.kmSaatGanti.toString(),
+                    catatan: service.catatan || ''
+                });
+                setEditingId(service.id);
+                setShowForm(true);
+            };
+
+            const handleDelete = async (id) => {
+                if (confirm('Yakin ingin menghapus data service ini?')) {
+                    try {
+                        await firebase.database().ref('services/' + id).remove();
+                    } catch (err) {
+                        alert('Error menghapus data: ' + err.message);
+                    }
+                }
+            };
+
+            const resetForm = () => {
+                setFormData({
+                    jenisService: '',
+                    jenisMotor: '',
+                    merkMotor: '',
+                    tanggalService: '',
+                    kmSaatGanti: '',
+                    catatan: ''
+                });
+                setEditingId(null);
+                setShowForm(false);
+            };
+
+            const getServiceIcon = (serviceName) => {
+                const service = SERVICE_TYPES.find(s => s.name === serviceName);
+                return service ? service.icon : '🔧';
+            };
+
+            const sortedServices = [...services].sort((a, b) => 
+                new Date(b.tanggalService) - new Date(a.tanggalService)
+            );
+
+            if (error && !firebaseInitialized) {
+                return (
+                    <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 py-8 px-4">
+                        <div className="max-w-4xl mx-auto">
+                            <div className="bg-white rounded-2xl shadow-xl p-8">
+                                <h1 className="text-3xl font-bold text-gray-800 mb-6">
+                                    🏍️ Service Motor App - Setup Firebase
+                                </h1>
+                                
+                                <div className="bg-yellow-50 border-l-4 border-yellow-400 p-6 mb-6">
+                                    <p className="text-lg font-semibold text-yellow-800 mb-2">{error}</p>
+                                </div>
+
+                                <div className="space-y-6">
+                                    <div>
+                                        <h2 className="text-2xl font-bold text-gray-800 mb-4">📋 Panduan Setup Firebase:</h2>
+                                        
+                                        <ol className="list-decimal list-inside space-y-4 text-gray-700">
+                                            <li className="font-semibold">
+                                                Buat Project Firebase
+                                                <ul className="list-disc list-inside ml-6 mt-2 space-y-2 font-normal">
+                                                    <li>Kunjungi <a href="https://console.firebase.google.com" target="_blank" className="text-blue-600 hover:underline">https://console.firebase.google.com</a></li>
+                                                    <li>Klik "Add project" atau "Tambah project"</li>
+                                                    <li>Beri nama project (misal: "service-motor-app")</li>
+                                                    <li>Ikuti wizard setup hingga selesai</li>
+                                                </ul>
+                                            </li>
+
+                                            <li className="font-semibold">
+                                                Setup Realtime Database
+                                                <ul className="list-disc list-inside ml-6 mt-2 space-y-2 font-normal">
+                                                    <li>Di sidebar, pilih "Build" → "Realtime Database"</li>
+                                                    <li>Klik "Create Database"</li>
+                                                    <li>Pilih lokasi server (misalnya: singapore-southasia1)</li>
+                                                    <li>Pilih "Start in test mode" untuk testing (ubah ke production mode nanti)</li>
+                                                </ul>
+                                            </li>
+
+                                            <li className="font-semibold">
+                                                Dapatkan Konfigurasi Firebase
+                                                <ul className="list-disc list-inside ml-6 mt-2 space-y-2 font-normal">
+                                                    <li>Klik ikon gear ⚙️ di sidebar → "Project settings"</li>
+                                                    <li>Scroll ke bawah ke bagian "Your apps"</li>
+                                                    <li>Klik icon Web "&lt;/&gt;"</li>
+                                                    <li>Daftar app (beri nama "Service Motor Web")</li>
+                                                    <li>Copy konfigurasi Firebase yang muncul</li>
+                                                </ul>
+                                            </li>
+
+                                            <li className="font-semibold">
+                                                Update Kode HTML
+                                                <ul className="list-disc list-inside ml-6 mt-2 space-y-2 font-normal">
+                                                    <li>Buka file HTML ini dengan text editor</li>
+                                                    <li>Cari bagian "firebaseConfig" (sekitar baris 28)</li>
+                                                    <li>Ganti nilai yang ada dengan konfigurasi Firebase Anda</li>
+                                                    <li>Simpan file dan refresh halaman</li>
+                                                </ul>
+                                            </li>
+                                        </ol>
+                                    </div>
+
+                                    <div className="bg-gray-50 p-6 rounded-lg">
+                                        <h3 className="font-bold text-gray-800 mb-3">📝 Contoh Konfigurasi:</h3>
+                                        <pre className="bg-gray-800 text-green-400 p-4 rounded-lg overflow-x-auto text-sm">
+{`const firebaseConfig = {
+  apiKey: "AIzaSyXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX",
+  authDomain: "service-motor-app.firebaseapp.com",
+  databaseURL: "https://service-motor-app-default-rtdb.firebaseio.com",
+  projectId: "service-motor-app",
+  storageBucket: "service-motor-app.appspot.com",
+  messagingSenderId: "123456789012",
+  appId: "1:123456789012:web:abcdef1234567890"
+};`}
+                                        </pre>
+                                    </div>
+
+                                    <div className="bg-blue-50 p-6 rounded-lg">
+                                        <h3 className="font-bold text-blue-800 mb-2">💡 Tips:</h3>
+                                        <ul className="list-disc list-inside space-y-2 text-blue-700">
+                                            <li>Database Realtime Firebase GRATIS untuk penggunaan ringan</li>
+                                            <li>Data akan tersimpan secara online dan bisa diakses dari device manapun</li>
+                                            <li>Untuk production, ubah rules database untuk keamanan lebih baik</li>
+                                        </ul>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                );
+            }
+
+            if (loading) {
+                return (
+                    <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 flex items-center justify-center">
+                        <div className="text-center">
+                            <div className="loading-spinner mx-auto mb-4"></div>
+                            <p className="text-gray-600 text-lg">Loading data...</p>
+                        </div>
+                    </div>
+                );
+            }
+
+            return (
+                <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 py-8 px-4">
+                    <div className="max-w-6xl mx-auto">
+                        {/* Header */}
+                        <div className="bg-white rounded-2xl shadow-xl p-6 mb-6">
+                            <div className="flex items-center justify-between flex-wrap gap-4">
+                                <div>
+                                    <h1 className="text-3xl font-bold text-gray-800 flex items-center gap-3">
+                                        🏍️ Service Motor App
+                                        <span className="text-sm bg-green-100 text-green-700 px-3 py-1 rounded-full">🌐 Online</span>
+                                    </h1>
+                                    <p className="text-gray-600 mt-2">Catat dan pantau jadwal service motor Anda</p>
+                                </div>
+                                <button
+                                    onClick={() => setShowForm(!showForm)}
+                                    disabled={saving}
+                                    className="bg-gradient-to-r from-blue-600 to-indigo-600 text-white px-6 py-3 rounded-xl font-semibold hover:from-blue-700 hover:to-indigo-700 transition-all shadow-lg hover:shadow-xl transform hover:-translate-y-0.5 disabled:opacity-50"
+                                >
+                                    {showForm ? '✕ Tutup' : '+ Tambah Service'}
+                                </button>
+                            </div>
+                        </div>
+
+                        {/* Form */}
+                        {showForm && (
+                            <div className="bg-white rounded-2xl shadow-xl p-6 mb-6">
+                                <h2 className="text-2xl font-bold text-gray-800 mb-6">
+                                    {editingId ? '✏️ Edit Service' : '📝 Tambah Service Baru'}
+                                </h2>
+                                <form onSubmit={handleSubmit} className="space-y-4">
+                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                        <div>
+                                            <label className="block text-sm font-semibold text-gray-700 mb-2">
+                                                Jenis Service *
+                                            </label>
+                                            <select
+                                                name="jenisService"
+                                                value={formData.jenisService}
+                                                onChange={handleInputChange}
+                                                required
+                                                disabled={saving}
+                                                className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent disabled:bg-gray-100"
+                                            >
+                                                <option value="">Pilih Jenis Service</option>
+                                                {SERVICE_TYPES.map(service => (
+                                                    <option key={service.name} value={service.name}>
+                                                        {service.icon} {service.name}
+                                                    </option>
+                                                ))}
+                                            </select>
+                                        </div>
+
+                                        <div>
+                                            <label className="block text-sm font-semibold text-gray-700 mb-2">
+                                                Merk Motor *
+                                            </label>
+                                            <select
+                                                name="merkMotor"
+                                                value={formData.merkMotor}
+                                                onChange={handleInputChange}
+                                                required
+                                                disabled={saving}
+                                                className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent disabled:bg-gray-100"
+                                            >
+                                                <option value="">Pilih Merk</option>
+                                                {MOTOR_BRANDS.map(brand => (
+                                                    <option key={brand} value={brand}>{brand}</option>
+                                                ))}
+                                            </select>
+                                        </div>
+
+                                        <div>
+                                            <label className="block text-sm font-semibold text-gray-700 mb-2">
+                                                Jenis Motor *
+                                            </label>
+                                            <input
+                                                type="text"
+                                                name="jenisMotor"
+                                                value={formData.jenisMotor}
+                                                onChange={handleInputChange}
+                                                placeholder="Contoh: Vario 160, NMAX, Beat"
+                                                required
+                                                disabled={saving}
+                                                className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent disabled:bg-gray-100"
+                                            />
+                                        </div>
+
+                                        <div>
+                                            <label className="block text-sm font-semibold text-gray-700 mb-2">
+                                                Tanggal Service *
+                                            </label>
+                                            <input
+                                                type="date"
+                                                name="tanggalService"
+                                                value={formData.tanggalService}
+                                                onChange={handleInputChange}
+                                                required
+                                                disabled={saving}
+                                                className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent disabled:bg-gray-100"
+                                            />
+                                        </div>
+
+                                        <div>
+                                            <label className="block text-sm font-semibold text-gray-700 mb-2">
+                                                KM Saat Ganti *
+                                            </label>
+                                            <input
+                                                type="number"
+                                                name="kmSaatGanti"
+                                                value={formData.kmSaatGanti}
+                                                onChange={handleInputChange}
+                                                placeholder="Contoh: 5000"
+                                                required
+                                                disabled={saving}
+                                                className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent disabled:bg-gray-100"
+                                            />
+                                        </div>
+
+                                        <div>
+                                            <label className="block text-sm font-semibold text-gray-700 mb-2">
+                                                Catatan (Opsional)
+                                            </label>
+                                            <input
+                                                type="text"
+                                                name="catatan"
+                                                value={formData.catatan}
+                                                onChange={handleInputChange}
+                                                placeholder="Catatan tambahan..."
+                                                disabled={saving}
+                                                className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent disabled:bg-gray-100"
+                                            />
+                                        </div>
+                                    </div>
+
+                                    <div className="flex gap-3 pt-4">
+                                        <button
+                                            type="submit"
+                                            disabled={saving}
+                                            className="flex-1 bg-gradient-to-r from-green-600 to-emerald-600 text-white px-6 py-3 rounded-lg font-semibold hover:from-green-700 hover:to-emerald-700 transition-all shadow-md disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+                                        >
+                                            {saving ? (
+                                                <>
+                                                    <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+                                                    Menyimpan...
+                                                </>
+                                            ) : (
+                                                <>{editingId ? '💾 Update Service' : '✅ Simpan Service'}</>
+                                            )}
+                                        </button>
+                                        <button
+                                            type="button"
+                                            onClick={resetForm}
+                                            disabled={saving}
+                                            className="px-6 py-3 border-2 border-gray-300 text-gray-700 rounded-lg font-semibold hover:bg-gray-50 transition-all disabled:opacity-50"
+                                        >
+                                            Batal
+                                        </button>
+                                    </div>
+                                </form>
+                            </div>
+                        )}
+
+                        {/* Services List */}
+                        <div className="bg-white rounded-2xl shadow-xl p-6">
+                            <h2 className="text-2xl font-bold text-gray-800 mb-6 flex items-center gap-2">
+                                📋 Riwayat Service ({services.length})
+                            </h2>
+
+                            {services.length === 0 ? (
+                                <div className="text-center py-16">
+                                    <div className="text-6xl mb-4">🏍️</div>
+                                    <p className="text-gray-500 text-lg">Belum ada data service</p>
+                                    <p className="text-gray-400 mt-2">Klik tombol "Tambah Service" untuk memulai</p>
+                                </div>
+                            ) : (
+                                <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+                                    {sortedServices.map(service => (
+                                        <div 
+                                            key={service.id}
+                                            className="border-2 border-gray-200 rounded-xl p-5 hover:shadow-lg transition-all hover:border-blue-300"
+                                        >
+                                            <div className="flex items-start justify-between mb-4">
+                                                <div className="flex items-center gap-3">
+                                                    <span className="text-3xl">{getServiceIcon(service.jenisService)}</span>
+                                                    <div>
+                                                        <h3 className="font-bold text-lg text-gray-800">
+                                                            {service.jenisService}
+                                                        </h3>
+                                                        <p className="text-sm text-gray-600">
+                                                            {service.merkMotor} {service.jenisMotor}
+                                                        </p>
+                                                    </div>
+                                                </div>
+                                                <div className="flex gap-2">
+                                                    <button
+                                                        onClick={() => handleEdit(service)}
+                                                        className="p-2 text-blue-600 hover:bg-blue-50 rounded-lg transition-all"
+                                                        title="Edit"
+                                                    >
+                                                        ✏️
+                                                    </button>
+                                                    <button
+                                                        onClick={() => handleDelete(service.id)}
+                                                        className="p-2 text-red-600 hover:bg-red-50 rounded-lg transition-all"
+                                                        title="Hapus"
+                                                    >
+                                                        🗑️
+                                                    </button>
+                                                </div>
+                                            </div>
+
+                                            <div className="grid grid-cols-2 gap-3 text-sm">
+                                                <div className="bg-blue-50 p-3 rounded-lg">
+                                                    <p className="text-gray-600 mb-1">📅 Tanggal Service</p>
+                                                    <p className="font-semibold text-gray-800">
+                                                        {new Date(service.tanggalService).toLocaleDateString('id-ID', {
+                                                            day: 'numeric',
+                                                            month: 'long',
+                                                            year: 'numeric'
+                                                        })}
+                                                    </p>
+                                                </div>
+                                                <div className="bg-green-50 p-3 rounded-lg">
+                                                    <p className="text-gray-600 mb-1">📊 KM Saat Ganti</p>
+                                                    <p className="font-semibold text-gray-800">
+                                                        {service.kmSaatGanti.toLocaleString('id-ID')} km
+                                                    </p>
+                                                </div>
+                                                <div className="bg-yellow-50 p-3 rounded-lg col-span-2">
+                                                    <p className="text-gray-600 mb-1">🎯 Service Berikutnya</p>
+                                                    <p className="font-bold text-lg text-orange-600">
+                                                        {service.kmNextService.toLocaleString('id-ID')} km
+                                                    </p>
+                                                </div>
+                                            </div>
+
+                                            {service.catatan && (
+                                                <div className="mt-3 p-3 bg-gray-50 rounded-lg">
+                                                    <p className="text-xs text-gray-600 mb-1">💬 Catatan:</p>
+                                                    <p className="text-sm text-gray-800">{service.catatan}</p>
+                                                </div>
+                                            )}
+                                        </div>
+                                    ))}
+                                </div>
+                            )}
+                        </div>
+
+                        {/* Footer */}
+                        <div className="text-center mt-8 text-gray-600">
+                            <p className="text-sm">🌐 Data tersimpan di Firebase Realtime Database</p>
+                            <p className="text-xs mt-1 text-gray-500">Dapat diakses dari device manapun dengan internet</p>
+                        </div>
+                    </div>
+                </div>
+            );
+        }
+
+        ReactDOM.render(<ServiceMotorApp />, document.getElementById('root'));
+    </script>
+</body>
+</html>
