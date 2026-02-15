@@ -3,7 +3,8 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Service Motor App - Online Database</title>
+    <title>Service Motor App - WhatsApp Notifications</title>
+    <meta name="description" content="Web app untuk tracking dan monitoring jadwal service motor dengan notifikasi WhatsApp">
     <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
     <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
     <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
@@ -29,6 +30,13 @@
             0% { transform: rotate(0deg); }
             100% { transform: rotate(360deg); }
         }
+        .pulse {
+            animation: pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+        }
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: .5; }
+        }
     </style>
 </head>
 <body class="bg-gray-50">
@@ -38,17 +46,16 @@
         const { useState, useEffect } = React;
 
         // KONFIGURASI FIREBASE
-        // Ganti dengan konfigurasi Firebase Anda sendiri
-        const firebaseConfig = {
-            apiKey: "AIzaSyBiS743krcarz8ojSb7i54Yrni6N4E5gE8",
-            authDomain: "service-motor-app.firebaseapp.com",
-            databaseURL: "https://service-motor-app-default-rtdb.asia-southeast1.firebasedatabase.app",
-            projectId: "service-motor-app",
-            storageBucket: "service-motor-app.firebasestorage.app",
-            messagingSenderId: "303245984126",
-            appId: "1:303245984126:web:2ef9e08baf6ebed15c332f",
-            measurementId: "G-LJCGMSNDJG"
-        };
+const firebaseConfig = {
+  apiKey: "AIzaSyBiS743krcarz8ojSb7i54Yrni6N4E5gE8",
+  authDomain: "service-motor-app.firebaseapp.com",
+  databaseURL: "https://service-motor-app-default-rtdb.asia-southeast1.firebasedatabase.app",
+  projectId: "service-motor-app",
+  storageBucket: "service-motor-app.firebasestorage.app",
+  messagingSenderId: "303245984126",
+  appId: "1:303245984126:web:2ef9e08baf6ebed15c332f",
+  measurementId: "G-LJCGMSNDJG"
+};
 
         const SERVICE_TYPES = [
             { name: 'Ganti Oli Mesin', intervalKm: 2000, icon: '🛢️' },
@@ -74,6 +81,9 @@
             const [saving, setSaving] = useState(false);
             const [firebaseInitialized, setFirebaseInitialized] = useState(false);
             const [error, setError] = useState('');
+            const [showWhatsAppModal, setShowWhatsAppModal] = useState(false);
+            const [selectedService, setSelectedService] = useState(null);
+            const [phoneNumber, setPhoneNumber] = useState('');
             const [formData, setFormData] = useState({
                 jenisService: '',
                 jenisMotor: '',
@@ -85,10 +95,8 @@
 
             let database = null;
 
-            // Initialize Firebase
             useEffect(() => {
                 try {
-                    // Check if firebase config is set
                     if (firebaseConfig.apiKey === "YOUR_API_KEY") {
                         setError('⚠️ Konfigurasi Firebase belum diatur. Silakan lihat panduan setup di bawah.');
                         setLoading(false);
@@ -124,7 +132,6 @@
                     setLoading(false);
                 });
 
-                // Cleanup listener
                 return () => servicesRef.off();
             };
 
@@ -160,10 +167,8 @@
                     };
 
                     if (editingId) {
-                        // Update existing service
                         await firebase.database().ref('services/' + editingId).update(serviceData);
                     } else {
-                        // Add new service
                         await firebase.database().ref('services').push(serviceData);
                     }
 
@@ -216,6 +221,74 @@
                 return service ? service.icon : '🔧';
             };
 
+            // WhatsApp Functions
+            const openWhatsAppModal = (service) => {
+                setSelectedService(service);
+                setShowWhatsAppModal(true);
+            };
+
+            const sendWhatsAppReminder = () => {
+                if (!selectedService) return;
+                
+                const message = `🏍️ *REMINDER SERVICE MOTOR*
+
+📋 Jenis Service: ${selectedService.jenisService}
+🏍️ Motor: ${selectedService.merkMotor} ${selectedService.jenisMotor}
+📅 Service Terakhir: ${new Date(selectedService.tanggalService).toLocaleDateString('id-ID')}
+📊 KM Terakhir: ${selectedService.kmSaatGanti.toLocaleString('id-ID')} km
+🎯 Service Berikutnya: ${selectedService.kmNextService.toLocaleString('id-ID')} km
+${selectedService.catatan ? `\n💬 Catatan: ${selectedService.catatan}` : ''}
+
+⚠️ Jangan lupa service motor ya!`;
+
+                let waUrl;
+                if (phoneNumber && phoneNumber.trim() !== '') {
+                    // Format nomor: hapus karakter non-digit dan tambah 62
+                    let cleanNumber = phoneNumber.replace(/\D/g, '');
+                    if (cleanNumber.startsWith('0')) {
+                        cleanNumber = '62' + cleanNumber.substring(1);
+                    } else if (!cleanNumber.startsWith('62')) {
+                        cleanNumber = '62' + cleanNumber;
+                    }
+                    waUrl = `https://wa.me/${cleanNumber}?text=${encodeURIComponent(message)}`;
+                } else {
+                    waUrl = `https://wa.me/?text=${encodeURIComponent(message)}`;
+                }
+
+                window.open(waUrl, '_blank');
+                setShowWhatsAppModal(false);
+                setPhoneNumber('');
+            };
+
+            const sendWhatsAppSummary = () => {
+                const upcomingServices = services
+                    .filter(s => s.kmNextService)
+                    .sort((a, b) => a.kmNextService - b.kmNextService)
+                    .slice(0, 5);
+
+                let message = `🏍️ *SUMMARY SERVICE MOTOR*\n\n`;
+                message += `📊 Total Service Tercatat: ${services.length}\n\n`;
+                message += `🎯 *Service Berikutnya:*\n`;
+
+                upcomingServices.forEach((service, index) => {
+                    message += `\n${index + 1}. ${service.jenisService}`;
+                    message += `\n   ${service.merkMotor} ${service.jenisMotor}`;
+                    message += `\n   KM: ${service.kmNextService.toLocaleString('id-ID')} km\n`;
+                });
+
+                const waUrl = `https://wa.me/?text=${encodeURIComponent(message)}`;
+                window.open(waUrl, '_blank');
+            };
+
+            const checkNearbyServices = () => {
+                // Filter services yang mendekati jadwal (misalnya dalam 500 km)
+                return services.filter(s => {
+                    if (!s.kmNextService) return false;
+                    // Ini contoh, di production bisa dibandingkan dengan KM motor saat ini
+                    return true;
+                });
+            };
+
             const sortedServices = [...services].sort((a, b) => 
                 new Date(b.tanggalService) - new Date(a.tanggalService)
             );
@@ -254,55 +327,28 @@
                                                     <li>Di sidebar, pilih "Build" → "Realtime Database"</li>
                                                     <li>Klik "Create Database"</li>
                                                     <li>Pilih lokasi server (misalnya: singapore-southasia1)</li>
-                                                    <li>Pilih "Start in test mode" untuk testing (ubah ke production mode nanti)</li>
+                                                    <li>Pilih "Start in test mode" untuk testing</li>
                                                 </ul>
                                             </li>
 
                                             <li className="font-semibold">
                                                 Dapatkan Konfigurasi Firebase
                                                 <ul className="list-disc list-inside ml-6 mt-2 space-y-2 font-normal">
-                                                    <li>Klik ikon gear ⚙️ di sidebar → "Project settings"</li>
-                                                    <li>Scroll ke bawah ke bagian "Your apps"</li>
-                                                    <li>Klik icon Web "&lt;/&gt;"</li>
-                                                    <li>Daftar app (beri nama "Service Motor Web")</li>
-                                                    <li>Copy konfigurasi Firebase yang muncul</li>
+                                                    <li>Klik ⚙️ → "Project settings"</li>
+                                                    <li>Scroll ke "Your apps" → klik Web "&lt;/&gt;"</li>
+                                                    <li>Copy konfigurasi Firebase</li>
                                                 </ul>
                                             </li>
 
                                             <li className="font-semibold">
-                                                Update Kode HTML
+                                                Update Kode di GitHub
                                                 <ul className="list-disc list-inside ml-6 mt-2 space-y-2 font-normal">
-                                                    <li>Buka file HTML ini dengan text editor</li>
-                                                    <li>Cari bagian "firebaseConfig" (sekitar baris 28)</li>
-                                                    <li>Ganti nilai yang ada dengan konfigurasi Firebase Anda</li>
-                                                    <li>Simpan file dan refresh halaman</li>
+                                                    <li>Edit index.html di GitHub</li>
+                                                    <li>Ganti firebaseConfig dengan config Anda</li>
+                                                    <li>Commit changes</li>
                                                 </ul>
                                             </li>
                                         </ol>
-                                    </div>
-
-                                    <div className="bg-gray-50 p-6 rounded-lg">
-                                        <h3 className="font-bold text-gray-800 mb-3">📝 Contoh Konfigurasi:</h3>
-                                        <pre className="bg-gray-800 text-green-400 p-4 rounded-lg overflow-x-auto text-sm">
-{`const firebaseConfig = {
-  apiKey: "AIzaSyXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX",
-  authDomain: "service-motor-app.firebaseapp.com",
-  databaseURL: "https://service-motor-app-default-rtdb.firebaseio.com",
-  projectId: "service-motor-app",
-  storageBucket: "service-motor-app.appspot.com",
-  messagingSenderId: "123456789012",
-  appId: "1:123456789012:web:abcdef1234567890"
-};`}
-                                        </pre>
-                                    </div>
-
-                                    <div className="bg-blue-50 p-6 rounded-lg">
-                                        <h3 className="font-bold text-blue-800 mb-2">💡 Tips:</h3>
-                                        <ul className="list-disc list-inside space-y-2 text-blue-700">
-                                            <li>Database Realtime Firebase GRATIS untuk penggunaan ringan</li>
-                                            <li>Data akan tersimpan secara online dan bisa diakses dari device manapun</li>
-                                            <li>Untuk production, ubah rules database untuk keamanan lebih baik</li>
-                                        </ul>
                                     </div>
                                 </div>
                             </div>
@@ -329,19 +375,29 @@
                         <div className="bg-white rounded-2xl shadow-xl p-6 mb-6">
                             <div className="flex items-center justify-between flex-wrap gap-4">
                                 <div>
-                                    <h1 className="text-3xl font-bold text-gray-800 flex items-center gap-3">
+                                    <h1 className="text-3xl font-bold text-gray-800 flex items-center gap-3 flex-wrap">
                                         🏍️ Service Motor App
                                         <span className="text-sm bg-green-100 text-green-700 px-3 py-1 rounded-full">🌐 Online</span>
+                                        <span className="text-sm bg-green-100 text-green-700 px-3 py-1 rounded-full">📱 WhatsApp</span>
                                     </h1>
-                                    <p className="text-gray-600 mt-2">Catat dan pantau jadwal service motor Anda</p>
+                                    <p className="text-gray-600 mt-2">Catat dan pantau jadwal service motor dengan notifikasi WhatsApp</p>
                                 </div>
-                                <button
-                                    onClick={() => setShowForm(!showForm)}
-                                    disabled={saving}
-                                    className="bg-gradient-to-r from-blue-600 to-indigo-600 text-white px-6 py-3 rounded-xl font-semibold hover:from-blue-700 hover:to-indigo-700 transition-all shadow-lg hover:shadow-xl transform hover:-translate-y-0.5 disabled:opacity-50"
-                                >
-                                    {showForm ? '✕ Tutup' : '+ Tambah Service'}
-                                </button>
+                                <div className="flex gap-2 flex-wrap">
+                                    <button
+                                        onClick={sendWhatsAppSummary}
+                                        disabled={services.length === 0}
+                                        className="bg-gradient-to-r from-green-600 to-emerald-600 text-white px-4 py-2 rounded-xl font-semibold hover:from-green-700 hover:to-emerald-700 transition-all shadow-lg disabled:opacity-50 text-sm"
+                                    >
+                                        📊 Share Summary
+                                    </button>
+                                    <button
+                                        onClick={() => setShowForm(!showForm)}
+                                        disabled={saving}
+                                        className="bg-gradient-to-r from-blue-600 to-indigo-600 text-white px-6 py-2 rounded-xl font-semibold hover:from-blue-700 hover:to-indigo-700 transition-all shadow-lg disabled:opacity-50"
+                                    >
+                                        {showForm ? '✕ Tutup' : '+ Tambah Service'}
+                                    </button>
+                                </div>
                             </div>
                         </div>
 
@@ -558,6 +614,16 @@
                                                 </div>
                                             </div>
 
+                                            <div className="mt-4">
+                                                <button
+                                                    onClick={() => openWhatsAppModal(service)}
+                                                    className="w-full bg-gradient-to-r from-green-500 to-green-600 hover:from-green-600 hover:to-green-700 text-white px-4 py-3 rounded-lg font-semibold transition-all shadow-md hover:shadow-lg flex items-center justify-center gap-2"
+                                                >
+                                                    <span className="text-xl">📱</span>
+                                                    Kirim Reminder via WhatsApp
+                                                </button>
+                                            </div>
+
                                             {service.catatan && (
                                                 <div className="mt-3 p-3 bg-gray-50 rounded-lg">
                                                     <p className="text-xs text-gray-600 mb-1">💬 Catatan:</p>
@@ -570,10 +636,72 @@
                             )}
                         </div>
 
+                        {/* WhatsApp Modal */}
+                        {showWhatsAppModal && selectedService && (
+                            <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+                                <div className="bg-white rounded-2xl shadow-2xl max-w-md w-full p-6">
+                                    <h3 className="text-2xl font-bold text-gray-800 mb-4 flex items-center gap-2">
+                                        📱 Kirim ke WhatsApp
+                                    </h3>
+                                    
+                                    <div className="mb-6">
+                                        <label className="block text-sm font-semibold text-gray-700 mb-2">
+                                            Nomor WhatsApp (Opsional)
+                                        </label>
+                                        <input
+                                            type="text"
+                                            value={phoneNumber}
+                                            onChange={(e) => setPhoneNumber(e.target.value)}
+                                            placeholder="Contoh: 08123456789 atau 628123456789"
+                                            className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent"
+                                        />
+                                        <p className="text-xs text-gray-500 mt-2">
+                                            Kosongkan untuk memilih kontak dari WhatsApp
+                                        </p>
+                                    </div>
+
+                                    <div className="bg-gray-50 p-4 rounded-lg mb-6">
+                                        <p className="text-sm text-gray-600 mb-2 font-semibold">Preview Pesan:</p>
+                                        <div className="text-sm text-gray-700 whitespace-pre-line">
+                                            🏍️ <strong>REMINDER SERVICE MOTOR</strong>
+                                            <br/><br/>
+                                            📋 Jenis Service: {selectedService.jenisService}
+                                            <br/>
+                                            🏍️ Motor: {selectedService.merkMotor} {selectedService.jenisMotor}
+                                            <br/>
+                                            📅 Service Terakhir: {new Date(selectedService.tanggalService).toLocaleDateString('id-ID')}
+                                            <br/>
+                                            📊 KM Terakhir: {selectedService.kmSaatGanti.toLocaleString('id-ID')} km
+                                            <br/>
+                                            🎯 Service Berikutnya: {selectedService.kmNextService.toLocaleString('id-ID')} km
+                                        </div>
+                                    </div>
+
+                                    <div className="flex gap-3">
+                                        <button
+                                            onClick={sendWhatsAppReminder}
+                                            className="flex-1 bg-gradient-to-r from-green-600 to-emerald-600 text-white px-6 py-3 rounded-lg font-semibold hover:from-green-700 hover:to-emerald-700 transition-all shadow-md"
+                                        >
+                                            📤 Kirim Sekarang
+                                        </button>
+                                        <button
+                                            onClick={() => {
+                                                setShowWhatsAppModal(false);
+                                                setPhoneNumber('');
+                                            }}
+                                            className="px-6 py-3 border-2 border-gray-300 text-gray-700 rounded-lg font-semibold hover:bg-gray-50 transition-all"
+                                        >
+                                            Batal
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                        )}
+
                         {/* Footer */}
                         <div className="text-center mt-8 text-gray-600">
                             <p className="text-sm">🌐 Data tersimpan di Firebase Realtime Database</p>
-                            <p className="text-xs mt-1 text-gray-500">Dapat diakses dari device manapun dengan internet</p>
+                            <p className="text-xs mt-1 text-gray-500">📱 Notifikasi WhatsApp terintegrasi</p>
                         </div>
                     </div>
                 </div>
