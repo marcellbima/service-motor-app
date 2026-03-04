@@ -298,6 +298,116 @@
             color: rgba(255, 255, 255, 0.3);
         }
         
+        /* ===== MULTI-SELECT SERVICE CHECKBOXES ===== */
+        .service-checkbox-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+            gap: 8px;
+            background: rgba(0, 0, 0, 0.6);
+            border: 1px solid rgba(0, 229, 255, 0.3);
+            border-radius: 4px;
+            padding: 12px;
+            box-shadow: inset 0 0 10px rgba(0, 229, 255, 0.05);
+            transition: all 0.3s ease;
+        }
+
+        .service-checkbox-grid:focus-within {
+            border-color: #00e5ff;
+            box-shadow: 0 0 15px rgba(0, 229, 255, 0.5), inset 0 0 15px rgba(0, 229, 255, 0.1);
+        }
+
+        .service-checkbox-item {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 8px 10px;
+            border: 1px solid rgba(0, 229, 255, 0.15);
+            border-radius: 4px;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            user-select: none;
+        }
+
+        .service-checkbox-item:hover {
+            background: rgba(0, 229, 255, 0.08);
+            border-color: rgba(0, 229, 255, 0.4);
+        }
+
+        .service-checkbox-item.checked {
+            background: rgba(0, 229, 255, 0.15);
+            border-color: #00e5ff;
+            box-shadow: 0 0 8px rgba(0, 229, 255, 0.3);
+        }
+
+        .service-checkbox-item input[type="checkbox"] {
+            appearance: none;
+            -webkit-appearance: none;
+            width: 16px;
+            height: 16px;
+            border: 2px solid rgba(0, 229, 255, 0.5);
+            border-radius: 3px;
+            background: transparent;
+            cursor: pointer;
+            flex-shrink: 0;
+            position: relative;
+            transition: all 0.2s ease;
+        }
+
+        .service-checkbox-item input[type="checkbox"]:checked {
+            background: #00e5ff;
+            border-color: #00e5ff;
+            box-shadow: 0 0 8px rgba(0, 229, 255, 0.7);
+        }
+
+        .service-checkbox-item input[type="checkbox"]:checked::after {
+            content: '';
+            position: absolute;
+            top: 1px;
+            left: 4px;
+            width: 5px;
+            height: 9px;
+            border: 2px solid #000;
+            border-top: none;
+            border-left: none;
+            transform: rotate(45deg);
+        }
+
+        .service-checkbox-label {
+            font-family: 'Rajdhani', sans-serif;
+            font-weight: 500;
+            font-size: 14px;
+            color: #ffffff;
+            line-height: 1.2;
+        }
+
+        .service-checkbox-label .service-icon {
+            margin-right: 4px;
+        }
+
+        .service-selected-count {
+            font-family: 'Orbitron', monospace;
+            font-size: 11px;
+            color: #00e5ff;
+            letter-spacing: 1px;
+            margin-top: 6px;
+            opacity: 0.8;
+        }
+
+        /* Service tags in cards */
+        .service-tag {
+            display: inline-block;
+            background: rgba(0, 229, 255, 0.1);
+            border: 1px solid rgba(0, 229, 255, 0.4);
+            border-radius: 3px;
+            padding: 3px 8px;
+            font-family: 'Rajdhani', sans-serif;
+            font-size: 12px;
+            font-weight: 600;
+            color: #00e5ff;
+            margin: 2px;
+            white-space: nowrap;
+        }
+
         /* Data Display Boxes */
         .data-box {
             background: rgba(0, 229, 255, 0.05);
@@ -439,6 +549,10 @@
             .neon-button {
                 padding: 10px 20px;
                 font-size: 12px;
+            }
+
+            .service-checkbox-grid {
+                grid-template-columns: 1fr 1fr;
             }
         }
         
@@ -706,6 +820,57 @@
 
         const MOTOR_BRANDS = ['Honda', 'Yamaha', 'Suzuki', 'Kawasaki', 'TVS', 'Vespa', 'Royal Enfield', 'Lainnya'];
 
+        // ─── Helper: normalise jenisService to always be an array ───
+        function toArray(val) {
+            if (!val) return [];
+            if (Array.isArray(val)) return val;
+            return [val]; // legacy single-string value
+        }
+
+        // ─── Multi-select Checkbox Component ───
+        function ServiceCheckboxGroup({ selected, onChange }) {
+            const toggle = (name) => {
+                const current = toArray(selected);
+                const next = current.includes(name)
+                    ? current.filter(n => n !== name)
+                    : [...current, name];
+                onChange(next);
+            };
+
+            const selectedArr = toArray(selected);
+
+            return (
+                <div>
+                    <div className="service-checkbox-grid">
+                        {SERVICE_TYPES.map(s => {
+                            const isChecked = selectedArr.includes(s.name);
+                            return (
+                                <label
+                                    key={s.name}
+                                    className={`service-checkbox-item${isChecked ? ' checked' : ''}`}
+                                >
+                                    <input
+                                        type="checkbox"
+                                        checked={isChecked}
+                                        onChange={() => toggle(s.name)}
+                                    />
+                                    <span className="service-checkbox-label">
+                                        <span className="service-icon">{s.icon}</span>
+                                        {s.name}
+                                    </span>
+                                </label>
+                            );
+                        })}
+                    </div>
+                    {selectedArr.length > 0 && (
+                        <p className="service-selected-count">
+                            ✓ {selectedArr.length} SERVICE DIPILIH
+                        </p>
+                    )}
+                </div>
+            );
+        }
+
         function App() {
             const [services, setServices] = useState([]);
             const [loading, setLoading] = useState(true);
@@ -716,7 +881,7 @@
             const [editingId, setEditingId] = useState(null);
             const [saving, setSaving] = useState(false);
             const [formData, setFormData] = useState({
-                jenisService: '',
+                jenisService: [],   // now an array
                 jenisMotor: '',
                 merkMotor: '',
                 tanggalService: '',
@@ -761,7 +926,7 @@
                             }
                         },
                         onChange: function(selectedDates, dateStr) {
-                            setFormData({...formData, tanggalService: dateStr});
+                            setFormData(prev => ({...prev, tanggalService: dateStr}));
                         }
                     });
                 }
@@ -802,14 +967,27 @@
 
             const handleSubmit = async (e) => {
                 e.preventDefault();
+
+                const selectedServices = toArray(formData.jenisService);
+                if (selectedServices.length === 0) {
+                    alert('⚠️ Pilih minimal satu jenis service!');
+                    return;
+                }
+
                 setSaving(true);
                 
                 try {
-                    const service = SERVICE_TYPES.find(s => s.name === formData.jenisService);
-                    const nextKm = parseInt(formData.kmSaatGanti) + (service ? service.intervalKm : 2000);
+                    // Use the longest interval among selected services for next-service KM
+                    const maxInterval = selectedServices.reduce((max, name) => {
+                        const found = SERVICE_TYPES.find(s => s.name === name);
+                        return found ? Math.max(max, found.intervalKm) : max;
+                    }, 2000);
+
+                    const nextKm = parseInt(formData.kmSaatGanti) + maxInterval;
                     
                     const serviceData = {
                         ...formData,
+                        jenisService: selectedServices, // store as array
                         kmSaatGanti: parseInt(formData.kmSaatGanti),
                         kmNextService: nextKm,
                         createdAt: editingId ? 
@@ -825,7 +1003,7 @@
                     }
 
                     setFormData({
-                        jenisService: '',
+                        jenisService: [],
                         jenisMotor: '',
                         merkMotor: '',
                         tanggalService: '',
@@ -843,7 +1021,7 @@
 
             const handleEdit = (service) => {
                 setFormData({
-                    jenisService: service.jenisService,
+                    jenisService: toArray(service.jenisService),
                     jenisMotor: service.jenisMotor,
                     merkMotor: service.merkMotor,
                     tanggalService: service.tanggalService,
@@ -900,7 +1078,7 @@
             const getLatestServicesForUser = () => {
                 const serviceMap = new Map();
                 sortedServices.forEach(service => {
-                    const key = `${service.jenisService}-${service.jenisMotor}-${service.merkMotor}`;
+                    const key = `${JSON.stringify(toArray(service.jenisService))}-${service.jenisMotor}-${service.merkMotor}`;
                     if (!serviceMap.has(key)) {
                         serviceMap.set(key, service);
                     }
@@ -909,6 +1087,23 @@
             };
 
             const displayServices = isAdmin ? sortedServices : getLatestServicesForUser();
+
+            // Render service names as tags
+            const renderServiceTags = (jenisService) => {
+                const arr = toArray(jenisService);
+                return (
+                    <div style={{display: 'flex', flexWrap: 'wrap', gap: '2px'}}>
+                        {arr.map(name => {
+                            const found = SERVICE_TYPES.find(s => s.name === name);
+                            return (
+                                <span key={name} className="service-tag">
+                                    {found ? found.icon : ''} {name}
+                                </span>
+                            );
+                        })}
+                    </div>
+                );
+            };
 
             if (loading) {
                 return (
@@ -1025,22 +1220,16 @@
                             
                             <form onSubmit={handleSubmit}>
                                 <div style={{display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(250px, 1fr))', gap: '15px'}}>
-                                    <div>
+
+                                    {/* ─── JENIS SERVICE: multi-select checkboxes ─── */}
+                                    <div style={{gridColumn: '1 / -1'}}>
                                         <label className="jarvis-text" style={{display: 'block', marginBottom: '8px', fontSize: '14px'}}>
-                                            JENIS SERVICE *
+                                            JENIS SERVICE * <span style={{opacity: 0.5, fontSize: '12px'}}>(bisa pilih lebih dari satu)</span>
                                         </label>
-                                        <select
-                                            value={formData.jenisService}
-                                            onChange={(e) => setFormData({...formData, jenisService: e.target.value})}
-                                            required
-                                            className="jarvis-input"
-                                            style={{width: '100%'}}
-                                        >
-                                            <option value="">Select...</option>
-                                            {SERVICE_TYPES.map(s => (
-                                                <option key={s.name} value={s.name}>{s.icon} {s.name}</option>
-                                            ))}
-                                        </select>
+                                        <ServiceCheckboxGroup
+                                            selected={formData.jenisService}
+                                            onChange={(val) => setFormData(prev => ({...prev, jenisService: val}))}
+                                        />
                                     </div>
                                     
                                     <div>
@@ -1180,7 +1369,7 @@
                                         {sortedServices.map(s => (
                                             <tr key={s.id}>
                                                 <td>{new Date(s.tanggalService).toLocaleDateString('id-ID')}</td>
-                                                <td>{s.jenisService}</td>
+                                                <td style={{minWidth: '200px'}}>{renderServiceTags(s.jenisService)}</td>
                                                 <td>{s.merkMotor} {s.jenisMotor}</td>
                                                 <td>{s.kmSaatGanti.toLocaleString('id-ID')} km</td>
                                                 <td style={{color: '#ff9500'}}>{s.kmNextService.toLocaleString('id-ID')} km</td>
@@ -1220,6 +1409,7 @@
                                 <div style={{display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(300px, 1fr))', gap: '20px'}}>
                                     {displayServices.map(s => {
                                         const overdue = isServiceOverdue(s.tanggalService);
+                                        const serviceArr = toArray(s.jenisService);
                                         return (
                                             <div key={s.id} className={`glass-panel slide-up ${overdue ? 'data-box-red' : ''}`} style={{padding: '20px', position: 'relative'}}>
                                                 <div className="corner-bracket corner-tl"></div>
@@ -1243,12 +1433,20 @@
                                                 )}
                                                 
                                                 <div style={{marginBottom: '15px'}}>
-                                                    <h3 className="jarvis-title" style={{fontSize: '16px', marginBottom: '5px'}}>
-                                                        {s.jenisService}
-                                                    </h3>
-                                                    <p className="jarvis-text" style={{fontSize: '14px', opacity: 0.7}}>
+                                                    <p className="jarvis-text" style={{fontSize: '14px', opacity: 0.7, marginBottom: '6px'}}>
                                                         {s.merkMotor} {s.jenisMotor}
                                                     </p>
+                                                    {/* Service tags */}
+                                                    <div style={{display: 'flex', flexWrap: 'wrap', gap: '4px'}}>
+                                                        {serviceArr.map(name => {
+                                                            const found = SERVICE_TYPES.find(st => st.name === name);
+                                                            return (
+                                                                <span key={name} className="service-tag">
+                                                                    {found ? found.icon : ''} {name}
+                                                                </span>
+                                                            );
+                                                        })}
+                                                    </div>
                                                 </div>
                                                 
                                                 <div className="data-box" style={{marginBottom: '10px'}}>
@@ -1282,8 +1480,6 @@
                                                         <p className="jarvis-text" style={{fontSize: '14px'}}>{s.catatan}</p>
                                                     </div>
                                                 )}
-                                                
-                                                
                                             </div>
                                         );
                                     })}
@@ -1306,4 +1502,3 @@
     </script>
 </body>
 </html>
-
