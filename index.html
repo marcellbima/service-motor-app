@@ -384,6 +384,16 @@
             margin-right: 4px;
         }
 
+        .service-lainnya-row {
+            border-color: rgba(255, 149, 0, 0.25) !important;
+            background: rgba(255, 149, 0, 0.03) !important;
+        }
+
+        .service-lainnya-row:hover {
+            background: rgba(255, 149, 0, 0.07) !important;
+            border-color: rgba(255, 149, 0, 0.5) !important;
+        }
+
         .service-selected-count {
             font-family: 'Orbitron', monospace;
             font-size: 11px;
@@ -829,15 +839,34 @@
 
         // ─── Multi-select Checkbox Component ───
         function ServiceCheckboxGroup({ selected, onChange }) {
+            const selectedArr = toArray(selected);
+
+            // Custom entries = items in selectedArr that are NOT in SERVICE_TYPES
+            const knownNames = SERVICE_TYPES.map(s => s.name);
+            const customEntries = selectedArr.filter(n => !knownNames.includes(n));
+            const [customInput, setCustomInput] = useState('');
+
             const toggle = (name) => {
-                const current = toArray(selected);
-                const next = current.includes(name)
-                    ? current.filter(n => n !== name)
-                    : [...current, name];
+                const next = selectedArr.includes(name)
+                    ? selectedArr.filter(n => n !== name)
+                    : [...selectedArr, name];
                 onChange(next);
             };
 
-            const selectedArr = toArray(selected);
+            const addCustom = () => {
+                const trimmed = customInput.trim();
+                if (!trimmed) return;
+                if (selectedArr.includes(trimmed)) {
+                    setCustomInput('');
+                    return;
+                }
+                onChange([...selectedArr, trimmed]);
+                setCustomInput('');
+            };
+
+            const removeCustom = (name) => {
+                onChange(selectedArr.filter(n => n !== name));
+            };
 
             return (
                 <div>
@@ -861,6 +890,57 @@
                                 </label>
                             );
                         })}
+
+                        {/* ── Lainnya row ── */}
+                        <div className="service-checkbox-item service-lainnya-row" style={{gridColumn: '1 / -1', flexDirection: 'column', alignItems: 'flex-start', gap: '8px', cursor: 'default'}}>
+                            <span className="service-checkbox-label" style={{opacity: 0.7, fontSize: '13px', letterSpacing: '1px', fontFamily: "'Orbitron', monospace"}}>
+                                🔧 LAINNYA
+                            </span>
+                            <div style={{display: 'flex', gap: '8px', width: '100%', flexWrap: 'wrap'}}>
+                                <input
+                                    type="text"
+                                    value={customInput}
+                                    onChange={e => setCustomInput(e.target.value)}
+                                    onKeyDown={e => { if (e.key === 'Enter') { e.preventDefault(); addCustom(); }}}
+                                    placeholder="Ketik jenis service lainnya..."
+                                    className="jarvis-input"
+                                    style={{flex: 1, minWidth: '180px', padding: '8px 12px', fontSize: '14px'}}
+                                />
+                                <button
+                                    type="button"
+                                    onClick={addCustom}
+                                    className="neon-button neon-button-warning"
+                                    style={{padding: '8px 16px', fontSize: '12px', letterSpacing: '1px', whiteSpace: 'nowrap'}}
+                                >
+                                    + TAMBAH
+                                </button>
+                            </div>
+                            {/* Custom tags */}
+                            {customEntries.length > 0 && (
+                                <div style={{display: 'flex', flexWrap: 'wrap', gap: '6px', marginTop: '4px'}}>
+                                    {customEntries.map(name => (
+                                        <span key={name} style={{
+                                            display: 'inline-flex', alignItems: 'center', gap: '6px',
+                                            background: 'rgba(255, 149, 0, 0.15)',
+                                            border: '1px solid #ff9500',
+                                            borderRadius: '3px',
+                                            padding: '4px 10px',
+                                            fontFamily: "'Rajdhani', sans-serif",
+                                            fontSize: '13px',
+                                            color: '#ff9500',
+                                            fontWeight: 600
+                                        }}>
+                                            🔧 {name}
+                                            <span
+                                                onClick={() => removeCustom(name)}
+                                                style={{cursor: 'pointer', opacity: 0.7, fontSize: '14px', lineHeight: 1}}
+                                                title="Hapus"
+                                            >✕</span>
+                                        </span>
+                                    ))}
+                                </div>
+                            )}
+                        </div>
                     </div>
                     {selectedArr.length > 0 && (
                         <p className="service-selected-count">
